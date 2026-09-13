@@ -6,12 +6,24 @@ import './App.css'
 
 function App() {
   const bridge = window.RecipeBridge
+
+  // Render gate: standalone (no container) shows the UI straight away, and
+  // inside a container the UI waits for a successful handshake. Seeded from
+  // the bridge because the handshake can settle before React mounts.
+  const [ready, setReady] = useState(() => !bridge?.hasContainer || bridge?.connected === true)
+
   const [language, setLanguage] = useState(bridge?.language === 'ar' ? 'ar' : 'en')
   //const [activeItem, setActiveItem] = useState(() => menuKeys[bridge?.selectedItemNumber] || 'main')
   //const text = labels[language]
 
   useEffect(() => {
     if (!bridge) return undefined
+    console.log("Initial Language is: ", bridge?.language);
+    // The handshake mutates plain fields, which React cannot observe; this is
+    // the notification that lets the gate re-evaluate once it settles.
+    bridge.onConnected = () => {
+      setReady(!bridge.hasContainer || bridge.connected === true)
+    }
     bridge.onLanguage = (value) => {
       const nextLanguage = typeof value === 'string' && value.toLowerCase() === 'ar' ? 'ar' : 'en'
       setLanguage(nextLanguage)
@@ -22,6 +34,7 @@ function App() {
 
     return () => {
       bridge.onLanguage = null
+      bridge.onConnected = null
     }
   }, [bridge])
 
@@ -29,6 +42,11 @@ function App() {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'
     document.documentElement.lang = language
   }, [language])
+
+  // Inside a container, nothing is rendered until the handshake succeeds: the
+  // UI would otherwise flash default property values before TIA supplies the
+  // real ones. Standalone there is nothing to wait for, so `ready` starts true.
+  if (!ready) return null
 
   return (
     <div className='main-container' dir={language === 'ar' ? 'rtl' : 'ltr'} style={{

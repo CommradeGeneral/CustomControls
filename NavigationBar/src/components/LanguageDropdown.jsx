@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
 import { Flag, languageCodes, languageFlags } from './languageOptions'
 
 export default function LanguageDropdown({ language, labels, onSelect }) {
@@ -12,7 +11,6 @@ export default function LanguageDropdown({ language, labels, onSelect }) {
           <Flag code={languageFlags[language]} className="language-flag" />
           <span>{labels[language].languageName}</span>
         </span>
-        <ChevronDown className="language-chevron" aria-hidden="true" strokeWidth={2} />
       </button>
       {open && (
         <ul className="language-options">

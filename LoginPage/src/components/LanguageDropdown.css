@@ -1,0 +1,106 @@
+/*
+ * Language picker.
+ *
+ * The trigger and the menu must be exactly as wide as each other: both use the
+ * same --lang-width and border-box sizing, so the 1px border and the menu's
+ * missing top border cannot shift the geometry the way they did when each
+ * element sized itself.
+ */
+.lang-dropdown {
+    --lang-width: 150px;
+    position: relative;
+}
+
+.lang-trigger,
+.lang-menu {
+    box-sizing: border-box;
+    width: var(--lang-width);
+}
+
+.lang-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #ffffffd9;
+    border: 1px solid #00000029;
+    border-radius: 6px;
+    cursor: pointer;
+    font: inherit;
+    transition: background-color 120ms;
+}
+
+.lang-trigger:hover {
+    background: #ffffff;
+}
+
+.lang-trigger:focus-visible {
+    outline: 2px solid #1a4f8a;
+    outline-offset: 2px;
+}
+
+.lang-trigger.is-open {
+    border-radius: 6px 6px 0 0;
+}
+
+.lang-label {
+    flex: 1;
+    text-align: start;
+}
+
+.lang-caret {
+    font-size: 10px;
+    transition: transform 120ms;
+}
+
+.lang-caret.is-open {
+    transform: rotate(180deg);
+}
+
+.lang-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    top: 100%;
+    inset-inline-start: 0;
+    background: #fffffff2;
+    border: 1px solid #00000029;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.lang-option {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    text-align: start;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    transition: background-color 120ms;
+}
+
+.lang-option:hover {
+    background: #1a4f8a1a;
+}
+
+.lang-option:focus-visible {
+    outline: 2px solid #1a4f8a;
+    outline-offset: -2px;
+}
+
+.lang-option.is-selected {
+    background: #00000014;
+    font-weight: 600;
+}
+
+.lang-option.is-selected:hover {
+    background: #1a4f8a26;
+}

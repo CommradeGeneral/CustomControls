@@ -21,9 +21,12 @@ const guid = controlType.match(/^guid:\/\/([^/]+)$/i)?.[1]
 if (!guid) throw new Error('manifest.json does not contain a valid control identity GUID')
 
 const controlPath = path.join(projectRoot, 'control')
-const envPath = path.join(projectRoot, '.env')
+const repoRoot = path.resolve(projectRoot, '..')
 let outputDirectory = path.join(projectRoot, 'dist-controls')
-if (existsSync(envPath)) {
+// TIA_PROJ is shared across every control project, so it lives in the repo-root
+// .env. A project-local .env still wins, for overriding one project's target.
+for (const envPath of [path.join(repoRoot, '.env'), path.join(projectRoot, '.env')]) {
+  if (!existsSync(envPath)) continue
   const envMatch = readFileSync(envPath, 'utf8').match(/^TIA_PROJ\s*=\s*['"]?(.*?)['"]?\s*$/m)
   if (envMatch?.[1]) outputDirectory = envMatch[1].replace(/\\\\/g, '\\')
 }

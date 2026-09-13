@@ -1,0 +1,149 @@
+.login-card {
+    width: 440px;
+    max-width: calc(100% - 40px);
+    background: #ffffffbe;
+    backdrop-filter: blur(6px);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px #0000002e;
+    padding: 36px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+}
+
+.login-title {
+    margin: 0;
+    font-size: 1.6rem;
+    letter-spacing: 0.01em;
+}
+
+.login-fields {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+}
+
+/* Container-raised login message. The transition duration is mirrored by
+   FADE_MS in LoginForm.jsx, which schedules the unmount after the fade. */
+.login-message {
+    margin: 0;
+    align-self: stretch;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #b3261e;
+    opacity: 1;
+    transition: opacity 400ms ease-out;
+}
+
+.login-message.is-fading {
+    opacity: 0;
+}
+
+.login-signup {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #000000a6;
+}
+
+/* Rendered as a <button> in both cards so the switch is keyboard-reachable;
+   the browser's default button chrome is stripped back to inline text. */
+.signup-link {
+    padding: 0;
+    background: none;
+    border: none;
+    font: inherit;
+    color: #1a4f8a;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover {
+        text-decoration: underline;
+    }
+    &:focus-visible {
+        outline: 2px solid #1a4f8a;
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+}
+
+/* Sign-up rule checklist. Unnumbered: the marker is the pass/fail glyph in
+   .rule-mark, so the browser's own bullet is suppressed. */
+.rule-list {
+    align-self: stretch;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.8rem;
+}
+
+/* Three states over a translucent card on a photo backdrop, so every colour is
+   dark enough to hold up against a mid-tone: untouched is a readable slate
+   rather than a faint grey, and pass/fail carry a glyph as well as a hue so
+   the distinction does not rest on colour alone. */
+.rule {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: #33404dd9;
+    transition: color 120ms;
+}
+
+.rule-mark {
+    flex: none;
+    width: 1em;
+    text-align: center;
+}
+
+.rule-pending {
+    color: #33404dd9;
+}
+
+.rule-passed {
+    color: #17a355;
+    font-weight: 600;
+}
+
+.rule-failed {
+    color: #b3261e;
+    font-weight: 600;
+}
+
+.submit-button {
+    align-self: stretch;
+    padding: 12px;
+    background-color: #1a4f8a;
+    color: #ffffff;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 120ms, transform 0.1s ease-in-out;
+    &:hover {
+        background-color: #15406f;
+    }
+    &:active {
+        transform: scale(0.98);
+    }
+    &:focus-visible {
+        outline: 2px solid #1a4f8a;
+        outline-offset: 2px;
+    }
+    /* Last in the rule: these are same-specificity overrides of the base
+       background and cursor above, so they must win on source order. */
+    &:disabled {
+        background-color: #8a9aad;
+        cursor: not-allowed;
+    }
+    &:disabled:hover {
+        background-color: #8a9aad;
+    }
+    &:disabled:active {
+        transform: none;
+    }
+}

@@ -9,28 +9,34 @@
   --nav-divider: rgba(157, 210, 215, 0.2);
 }
 
+/* Horizontal strip: brand at the inline start, menu next to it, footer
+   controls pushed to the trailing edge. The gradient runs along the bar's own
+   axis, so it is 90deg here rather than the 180deg a vertical rail used. */
 .navigation-bar {
   box-sizing: border-box;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  /* `stretch`, not `center`: the height comes from the TIA container, and the
+     children are expected to span it. Centring would size each child to its
+     own content and leave gaps above and below. */
+  align-items: stretch;
   width: 100vw;
-  height: 100vh;
-  min-width: 118px;
-  min-height: 320px;
-  overflow: hidden;
+  min-width: 320px;
+  overflow: visible;
   color: var(--nav-text);
-  background: linear-gradient(180deg, var(--nav-background-dark) 0%, var(--nav-background) 17%, #1e3955 100%);
+  background: linear-gradient(90deg, var(--nav-background-dark) 0%, var(--nav-background) 17%, #1e3955 100%);
   font-family: 'Segoe UI', Tahoma, sans-serif;
 }
 
 .brand-block {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 9px;
-  min-height: 78px;
+  flex: 0 0 auto;
+  align-self: stretch;
   box-sizing: border-box;
-  padding: 14px 8px 12px;
+  padding: 0 14px;
   background: rgba(8, 20, 34, 0.2);
 }
 
@@ -75,8 +81,17 @@
   opacity: 0;
 }
 
+/* Queued along the bar. `grid-auto-flow: column` keeps the implicit tracks in
+   one row, so items are added to the inline axis rather than stacking. */
 .menu-list {
   display: grid;
+  grid-auto-flow: column;
+  /* Stretch, and give the implicit row the full height: the tiles' own
+     `height: 100%` resolves against this track, so a content-sized track would
+     cap them well short of the bar. */
+  grid-auto-rows: 100%;
+  align-items: stretch;
+  height: 100%;
   gap: 1px;
   padding: 0 3px;
 }
@@ -98,17 +113,24 @@
   transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
+/* Icon stacked above its label. The menu items are the only stacked controls
+   in the bar: the footer's language switch and sign-out stay as rows, so their
+   own rules below are left alone. Centred, because a stacked icon over a
+   centred label is what keeps the four items reading as one row of tiles. */
 .menu-item {
-  min-height: 64px;
+  min-height: 0;
+  height: 100%;
   flex-direction: column;
   justify-content: center;
-  gap: 5px;
-  padding: 7px 3px;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
   border-radius: 3px;
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.15;
-  white-space: normal;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .menu-item:hover,
@@ -155,25 +177,40 @@
   display: none;
 }
 
+/* Pushed to the trailing edge of the bar. Logical properties throughout: the
+   whole control mirrors for Arabic, so `inline-start` follows the writing
+   direction where `left`/`top` would strand the divider on the wrong side. */
 .bar-footer {
   display: grid;
+  grid-auto-flow: column;
+  /* The footer spans the bar so its leading divider is full height, but its
+     controls stay centred within it rather than stretching like the tiles. */
+  align-items: center;
   gap: 1px;
-  margin-top: auto;
-  padding: 8px 3px 7px;
-  border-top: 1px solid var(--nav-divider);
+  margin-top: 0;
+  margin-inline-start: auto;
+  padding: 7px 8px;
+  border-top: 0;
+  border-inline-start: 1px solid var(--nav-divider);
 }
 
+/* Matches .menu-item so the footer controls read as the same kind of row.
+   .language-switch re-declares flex-direction below to stack instead; this
+   block is what .sign-out picks up. */
 .language-switch,
 .sign-out {
-  min-height: 58px;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  padding: 5px 3px;
+  /* No floor: the container owns the bar height now, and a fixed minimum here
+     would push the footer past a short bar instead of fitting inside it. */
+  min-height: 0;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
   border-radius: 3px;
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.15;
+  text-align: start;
 }
 
 .language-picker {
@@ -181,11 +218,14 @@
   width: 100%;
 }
 
+/* Stacked like the menu tiles: flag over label. Overrides the shared row block
+   above, which .sign-out still uses. */
 .language-switch {
-  flex-direction: row;
-  justify-content: space-between;
-  gap: 6px;
-  min-height: 42px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
   padding: 6px 8px;
   border: 1px solid rgba(157, 210, 215, 0.5);
   border-radius: 6px;
@@ -202,9 +242,10 @@
 
 .language-current {
   display: flex;
+  flex-direction: column;
   min-width: 0;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   overflow: hidden;
   white-space: nowrap;
 }
@@ -217,24 +258,37 @@
   border-radius: 2px;
 }
 
-.language-chevron {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-  color: var(--nav-active-edge);
-  transition: transform 120ms ease;
+/* One height for the language button, sign-out, and every dropdown option, so
+   the footer controls and the panel they open line up. Set here rather than by
+   matching three sets of padding: the button carries a 1px border the options
+   do not, so equal padding would still leave them 2px apart. */
+.language-switch,
+.sign-out,
+.language-option {
+  min-height: 44px;
 }
 
-.language-picker.is-open .language-chevron {
-  transform: rotate(180deg);
-}
+/* Sits beside the button rather than below it, opening toward the bar's
+   interior: the footer is pinned to the trailing edge, so a panel on the
+   button's trailing side would run off the control. Anchoring the panel's end
+   to the button's leading edge sends it back over the menu area instead.
 
+   `inset-inline-start: auto` matters — left unset it still resolves, and the
+   panel stretches between both insets rather than sizing to its content.
+
+   Logical insets, not left/right: in the Arabic RTL mirror the panel flips to
+   the other side of the button on its own. */
 .language-options {
   position: absolute;
   z-index: 5;
-  right: 0;
-  bottom: calc(100% + 4px);
-  left: 0;
+  top: 0;
+  inset-inline-end: calc(100% + 4px);
+  inset-inline-start: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: max-content;
+  max-width: 100vw;
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -246,13 +300,19 @@
   box-shadow: 0 8px 18px rgba(12, 32, 55, 0.25);
 }
 
+/* Each option is a stacked tile in the horizontal panel, matching the button
+   it drops from. Width is content-sized: `100%` would make one option fill the
+   row and push the rest out. */
 .language-option {
   display: flex;
-  width: 100%;
+  flex-direction: column;
+  width: auto;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
+  gap: 4px;
   box-sizing: border-box;
-  padding: 8px;
+  padding: 6px 12px;
   border: 0;
   color: inherit;
   background: transparent;
@@ -261,7 +321,8 @@
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.15;
-  text-align: start;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .language-option:hover {

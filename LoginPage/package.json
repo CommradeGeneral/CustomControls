@@ -1,0 +1,22 @@
+{
+  "name": "login",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && npm run package",
+    "package": "node scripts/package-control.mjs"
+  },
+  "dependencies": {
+    "overlayscrollbars": "latest",
+    "overlayscrollbars-react": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "vite-plugin-singlefile": "latest"
+  }
+}

@@ -4,12 +4,30 @@
 // WebCC starts before React and forwards TIA property changes to the UI.
 window.RecipeBridge = {
   connected: false,
+  // Whether a container is present at all. Distinct from `connected`: absent
+  // means standalone (browser/dev, render immediately), present means we must
+  // wait for the handshake before rendering.
+  hasContainer: typeof WebCC !== 'undefined',
+  // Set once the handshake has settled either way, so the UI can tell "still
+  // waiting" from "tried and failed".
+  settled: false,
   language: 'en',
   selectedItemNumber: 0,
   pending: [],
   onLanguage: null,
   onSelectedItemNumber: null,
+  // Filled in by React; called when connected/settled changes so the gate can
+  // re-render. `connected` is a plain field and is not observable on its own.
+  onConnected: null,
 };
+
+/** Mark the handshake settled and let React know it can re-evaluate the gate. */
+function bridgeSettle(isConnected) {
+  var b = window.RecipeBridge;
+  b.connected = isConnected;
+  b.settled = true;
+  if (b.onConnected) b.onConnected();
+}
 
 function bridgeDispatch(kind, value) {
   var b = window.RecipeBridge;
@@ -25,17 +43,27 @@ function setStatus(msg) {
 }
 
 ////////////////////////////////////////////
-// Initialize the custom control
+// Initialize the custom control.
+//
+// Guarded because this file also runs standalone (plain browser, `npm run
+// dev`), where no container has defined WebCC. A bare WebCC.start() there is a
+// ReferenceError that aborts the script before `fire` below is attached, so the
+// absence has to be handled rather than thrown.
+if (typeof WebCC === 'undefined') {
+  setStatus('standalone: no container');
+  bridgeSettle(false);
+} else {
 WebCC.start(
   // callback function; occurs when the connection is done or failed.
   function (result) {
     if (result) {
-      window.RecipeBridge.connected = true;
+      bridgeSettle(true);
       setStatus('connected');
 
       // Seed current values, then subscribe for later changes.
       try {
         var props = WebCC.Properties;
+        console.log("props: ", props.Language);
         if (props) {
           window.RecipeBridge.language = props.Language;
           window.RecipeBridge.selectedItemNumber = props.selectedItemNumber;
@@ -63,6 +91,7 @@ WebCC.start(
         });
       }
     } else {
+      bridgeSettle(false);
       setStatus('connection failed');
     }
   },
@@ -79,6 +108,7 @@ WebCC.start(
   // connection timeout
   10000
 );
+}
 
 /**
  * Fire a contract event.
