@@ -1,0 +1,56 @@
+{
+  "mver": "1.2.0",
+  "control": {
+    "identity": {
+      "name": "NavigationBar",
+      "version": "1.0",
+      "displayname": "NavigationBar",
+      "icon": "./control/icons.png",
+      "type": "guid://A1B2C3D4-5678-90AB-CDEF-1234567890AB",
+      "start": "./control/index.html"
+    },
+    "metadata": {
+      "author": "Siemens",
+      "keywords": ["NavigationBar"]
+    },
+    "contracts": {
+      "api": {
+        "methods": {},
+        "events": {
+          "onPressingIcon": {
+            "arguments": {
+              "itemNumber": {
+                "type": "number"
+              }
+            },
+            "description": "Fires when a navigation item is pressed and returns its zero-based item number."
+          },
+          "onLoginOut": {
+            "arguments": {},
+            "description": "Fires when the sign-out button is pressed."
+          },
+          "onLanguageChange": {
+            "arguments": {
+              "lang": {
+                "type": "string"
+              }
+            },
+            "description": "Fires when the operator selects a language."
+          }
+        },
+        "properties": {
+          "Language": {
+            "type": "string",
+            "default": "en"
+          },
+          "selectedItemNumber": {
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 3
+          }
+        }
+      }
+    }
+  }
+}

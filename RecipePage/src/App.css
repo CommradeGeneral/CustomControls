@@ -1,0 +1,23 @@
+:root {
+  --nav-background: #203b57;
+  --nav-background-dark: #172f48;
+  --nav-text: #ffffff;
+  --nav-muted: #d8e2eb;
+  --nav-active: #5eb4f1;
+  --nav-active-hover: #4aa3e0;
+  --nav-active-edge: #9dd2d7;
+  --nav-divider: rgba(157, 210, 215, 0.2);
+}
+
+.main-container {
+  &>div {
+    padding: 10px;
+    &>div {
+      background-color: #ffffff;  
+      border-radius: 10px;
+      padding: 10px;
+      box-sizing: border-box;
+      box-shadow: #00000057 0px 0px 6px 1px ;
+    }
+  }
+}

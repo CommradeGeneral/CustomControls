@@ -1,0 +1,56 @@
+{
+  "mver": "1.2.0",
+  "control": {
+    "identity": {
+      "name": "RecipePage",
+      "version": "1.0",
+      "displayname": "RecipePage",
+      "icon": "./control/icons.png",
+      "type": "guid://BAEB2AB5-29A9-438C-8201-B038577D605C",
+      "start": "./control/index.html"
+    },
+    "metadata": {
+      "author": "Siemens",
+      "keywords": ["RecipePage"]
+    },
+    "contracts": {
+      "api": {
+        "methods": {},
+        "events": {
+          "onPressingIcon": {
+            "arguments": {
+              "itemNumber": {
+                "type": "number"
+              }
+            },
+            "description": "Fires when a navigation item is pressed and returns its zero-based item number."
+          },
+          "onLoginOut": {
+            "arguments": {},
+            "description": "Fires when the sign-out button is pressed."
+          },
+          "onLanguageChange": {
+            "arguments": {
+              "lang": {
+                "type": "string"
+              }
+            },
+            "description": "Fires when the operator selects a language."
+          }
+        },
+        "properties": {
+          "Language": {
+            "type": "string",
+            "default": "en"
+          },
+          "selectedItemNumber": {
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 3
+          }
+        }
+      }
+    }
+  }
+}
