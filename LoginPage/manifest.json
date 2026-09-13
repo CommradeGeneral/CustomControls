@@ -1,0 +1,125 @@
+{
+	"mver": "1.2.0",
+	"control": {
+		"identity": {
+			"name": "Login",
+			"version": "1.0",
+			"displayname": "Login",
+			"icon": "./control/icons.png",
+			"type": "guid://B8647621-A3A9-4BDC-9D56-B83513B3242B",
+			"start": "./control/index.html"
+		},
+		"metadata": {
+			"author": "Siemens",
+			"keywords": [
+				"Login"
+			]
+		},
+		"contracts": {
+			"api": {
+				"methods": {
+					"Print": {
+						"parameters": {
+							"data": {
+								"type": "string"
+							}
+						},
+						"description": "Write a diagnostic message to the control's console and status line."
+					},
+					"LoginMessage": {
+						"parameters": {
+							"messageNum" :{
+								"type": "number"
+							},
+							"duration": {
+								"type": "number"
+							}
+						},
+						"description": "Show a message under the sign-in button: 1 = invalid username or password, 2 = badly formatted username, any other value clears it. duration greater than zero fades the message away after that many milliseconds."
+					},
+					"RegisterMessage": {
+						"parameters": {
+							"messageNum" :{
+								"type": "number"
+							},
+							"duration": {
+								"type": "number"
+							}
+						},
+						"description": "Show a message under the sign-up button: 3 = username already exists, any other value clears it. duration greater than zero fades the message away after that many milliseconds."
+					},
+					"UpdateRecipeList": {
+						"parameters": {
+							"recipes": {
+								"type": "string"
+							}
+						},
+						"description": "Replace the displayed recipes with a JSON array string."
+					},
+					"ShowPage": {
+						"parameters": {
+							"pageNumber": {
+								"type": "number"
+							}
+						},
+						"description": "Jump to the given 1-based page of the recipe list."
+					}
+				},
+				"events": {
+					"onPressOnItem": {
+						"arguments": {
+							"recipeIndex": {
+								"type": "number"
+							}
+						},
+						"description": "An operator pressed a recipe item; gives the index within the full list."
+					},
+					"onPressNewRecipe": {
+						"arguments": {},
+						"description": "An operator pressed the New Recipe button."
+					},
+					"onLanguageChange": {
+						"arguments": {
+							"lang": {
+								"type": "string"
+							}
+						},
+						"description": "Language change event."
+					},
+					"onSignIn": {
+						"arguments": {
+							"user": {
+								"type": "string"
+							}
+						},
+						"description": "An operator pressed Sign in; JSON string of {username, password}."
+					},
+					"onSignUp": {
+						"arguments": {
+							"user": {
+								"type": "string"
+							}
+						},
+						"description": "An operator pressed Sign up; JSON string of {username, password}."
+					}
+				},
+				"properties": {
+					"RecipeList": {
+						"type": "string",
+						"default": "[]"
+					},
+					"Language": {
+						"type": "string",
+						"default": "en"
+					},
+					"RecipesPerPage": {
+						"type": "number",
+						"default": 5,
+						"minimum": 1,
+						"maximum": 10
+					}
+				}
+			}
+		}
+	}
+}
