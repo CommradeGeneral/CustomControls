@@ -87,7 +87,7 @@ function App() {
     justifyContent: 'center',
     alignItems: 'center',
     //backgroundImage: `url(${backgroundUrl})`,
-    backgroundColor: '#00ff004e',
+    backgroundColor: '#00ff004f',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     direction: langConfigs["dir"][language],
