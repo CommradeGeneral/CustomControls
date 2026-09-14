@@ -47,7 +47,7 @@
             "type": "number",
             "default": 0,
             "minimum": 0,
-            "maximum": 3
+            "maximum": 10
           }
         }
       }

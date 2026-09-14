@@ -10,7 +10,9 @@ function inlineClassicScripts() {
 
   return {
     name: 'inline-classic-scripts',
-    transformIndexHtml() {
+    transformIndexHtml(_html, ctx) {
+      if (ctx?.server) return []
+
       return [
         {
           tag: 'script',

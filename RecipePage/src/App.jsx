@@ -6,6 +6,7 @@ import './App.css'
 
 function App() {
   const bridge = window.RecipeBridge
+  
 
   // Render gate: standalone (no container) shows the UI straight away, and
   // inside a container the UI waits for a successful handshake. Seeded from
@@ -18,6 +19,7 @@ function App() {
 
   useEffect(() => {
     if (!bridge) return undefined
+    console.log("bridge")
     console.log("Initial Language is: ", bridge?.language);
     // The handshake mutates plain fields, which React cannot observe; this is
     // the notification that lets the gate re-evaluate once it settles.
