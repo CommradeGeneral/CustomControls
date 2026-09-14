@@ -12,7 +12,8 @@
     "overlayscrollbars": "latest",
     "overlayscrollbars-react": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "react-world-flags": "^1.6.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "latest",

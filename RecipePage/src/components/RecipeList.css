@@ -152,6 +152,14 @@ button {
   padding-bottom: 24px;
 }
 
+.recipe-cards__empty {
+  margin: 0;
+  padding: 24px 8px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
 .recipe-card {
   width: 100%;
   height: fit-content;
@@ -210,12 +218,6 @@ button {
   white-space: nowrap;
 }
 
-.recipe-card__version {
-  flex-shrink: 0;
-  font-size: inherit;
-  font-weight: 650;
-}
-
 .recipe-card__code {
   margin-top: 2px;
   font-size: inherit;
@@ -231,36 +233,14 @@ button {
   color: #e5efff;
 }
 
-.recipe-card__footer {
-  justify-content: space-between;
-  gap: 4px;
-  margin-top: 3px;
-  font-size: inherit;
-}
-
-.recipe-card__status-group {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 5px;
-}
-
-.recipe-card__version-badge,
 .recipe-card__status {
+  flex-shrink: 0;
   border-radius: 3px;
   padding: 2px 4px;
-  font-size: inherit;
-  line-height: 1.2;
-}
-
-.recipe-card__version-badge {
-  color: #526176;
-  background: #f0f3f7;
-}
-
-.recipe-card__status {
   color: #21834a;
   background: #dff5e7;
+  font-size: inherit;
+  line-height: 1.2;
 }
 
 .recipe-card__status--inactive {
@@ -268,14 +248,46 @@ button {
   background: #ffe1e1;
 }
 
-.recipe-card--selected .recipe-card__version-badge {
-  color: white;
-  background: #5689d8;
-}
-
 .recipe-card--selected .recipe-card__status {
   color: #e5f8ea;
   background: #397bd2;
+}
+
+.recipe-card--selected .recipe-card__status--inactive {
+  color: #ffe1e1;
+  background: #b8434c;
+}
+
+.recipe-card__footer {
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 3px;
+  font-size: inherit;
+}
+
+/* Label/value grid: labels share one column and values another, so the two
+   rows line up with each other regardless of differing label widths. */
+.recipe-card__dates {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  column-gap: 10px;
+  row-gap: 1px;
+  font-size: 0.9em;
+}
+
+.recipe-card__date-label {
+  color: #6b7280;
+}
+
+/* Pinned to LTR in the markup so the digit groups keep their order; this
+   keeps the two values flush with each other inside an RTL card too. */
+.recipe-card__date-value {
+  text-align: left;
+}
+
+.recipe-card--selected .recipe-card__date-label {
+  color: #cfe0f8;
 }
 
 .recipe-pagination {

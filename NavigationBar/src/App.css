@@ -250,11 +250,15 @@
   white-space: nowrap;
 }
 
+/* Height is pinned and width follows the flag's own ratio: the bundled SVGs
+   do not share one (US is 19:10, Egypt 3:2), so any fixed width/height box
+   would stretch or crop at least one of them. Pinning height instead keeps
+   every row on a common baseline while each flag stays undistorted. */
 .language-flag {
-  width: 20px;
-  height: 15px;
-  flex: 0 0 20px;
-  object-fit: cover;
+  width: auto;
+  height: 14px;
+  flex: 0 0 auto;
+  object-fit: contain;
   border-radius: 2px;
 }
 

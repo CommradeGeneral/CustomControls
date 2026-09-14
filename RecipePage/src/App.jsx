@@ -1,8 +1,14 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import RecipeList from './components/RecipeList'
+import { injectSampleRecipes } from './sampleRecipes'
 import './index.css'
 import './App.css'
+
+// Manual testing aid: call injectSampleRecipes() from the devtools console to
+// push a realistic container payload through CreateCards. Attached here because
+// a module nothing imports is never loaded, so the console would not see it.
+window.injectSampleRecipes = injectSampleRecipes
 
 function App() {
   const bridge = window.RecipeBridge
@@ -14,6 +20,14 @@ function App() {
   const [ready, setReady] = useState(() => !bridge?.hasContainer || bridge?.connected === true)
 
   const [language, setLanguage] = useState(bridge?.language === 'ar' ? 'ar' : 'en')
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const seeded = Number(bridge?.recipeItemsPerPage)
+    return Number.isInteger(seeded) && seeded >= 1 ? seeded : 5
+  })
+  const [showTemplate, setShowTemplate] = useState(() => bridge?.showTemplate !== false)
+  // Null until the container calls CreateCards; see the bridge field for why
+  // that is kept distinct from an empty array.
+  const [recipes, setRecipes] = useState(() => bridge?.recipes ?? null)
   //const [activeItem, setActiveItem] = useState(() => menuKeys[bridge?.selectedItemNumber] || 'main')
   //const text = labels[language]
 
@@ -30,12 +44,29 @@ function App() {
       const nextLanguage = typeof value === 'string' && value.toLowerCase() === 'ar' ? 'ar' : 'en'
       setLanguage(nextLanguage)
     }
+    bridge.onRecipeItemsPerPage = (value) => {
+      const next = Number(value)
+      if (Number.isInteger(next) && next >= 1) setItemsPerPage(next)
+    }
+    // Read-only from here: the container owns the flag and there is no
+    // companion event, so this only ever receives.
+    bridge.onShowTemplate = (value) => {
+      setShowTemplate(value !== false)
+    }
+    // Delivered by the CreateCards method, which has already validated that
+    // this is an array, so it is stored as-is and normalized at render.
+    bridge.onRecipes = (value) => {
+      setRecipes(Array.isArray(value) ? value : null)
+    }
 
     const queued = bridge.pending.splice(0, bridge.pending.length)
     queued.forEach(({ kind, value }) => bridge['on' + kind]?.(value))
 
     return () => {
       bridge.onLanguage = null
+      bridge.onRecipeItemsPerPage = null
+      bridge.onShowTemplate = null
+      bridge.onRecipes = null
       bridge.onConnected = null
     }
   }, [bridge])
@@ -67,7 +98,22 @@ function App() {
           width: '100%',
           height: '100%'
         }}>
-          <RecipeList language={language} />
+          <RecipeList
+            language={language}
+            itemsPerPage={itemsPerPage}
+            showTemplate={showTemplate}
+            recipes={recipes}
+            onItemsPerPageChange={(value) => {
+              // Same round-trip as Language: inside a container TIA owns the
+              // value, so only fire and let the property change come back.
+              if (bridge?.connected) {
+                bridge.fire('onRecipeItemsPerPageChange', value)
+              } else {
+                setItemsPerPage(value)
+                bridge?.fire('onRecipeItemsPerPageChange', value)
+              }
+            }}
+          />
         </div>
       </div>
       <div style={{

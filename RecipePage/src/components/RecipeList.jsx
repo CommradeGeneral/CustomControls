@@ -2,47 +2,68 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
+import buildCards from './buildCards'
 import './RecipeList.css'
 
-const recipes = [
-  { code: 'RC-0025', name: { en: 'Standard Concrete', ar: 'خرسانة عادية' }, title: { en: 'Standard Concrete', ar: 'خرسانة عادية' }, description: { en: 'Standard concrete mix recipe', ar: 'وصفة خلطة خرسانة عادية' }, version: 'v2', company: 'ABC Concrete Company', active: true },
-  { code: 'RC-0030', name: { en: 'Standard Concrete', ar: 'خرسانة عادية' }, title: { en: 'Standard Concrete', ar: 'خرسانة عادية' }, description: { en: 'Standard concrete mix recipe', ar: 'وصفة خلطة خرسانة عادية' }, version: 'v3', company: 'ABC Concrete Company', active: true, selected: true },
-  { code: 'RC-0035', name: { en: 'High Strength Concrete', ar: 'خرسانة عالية المقاومة' }, title: { en: 'High Strength Concrete', ar: 'خرسانة عالية المقاومة' }, description: { en: 'High strength concrete mix recipe', ar: 'وصفة خلطة خرسانة عالية المقاومة' }, version: 'v1', company: 'XYZ Construction', active: true },
-  { code: 'RC-0040', name: { en: 'High Strength Concrete', ar: 'خرسانة عالية المقاومة' }, title: { en: 'High Strength Concrete', ar: 'خرسانة عالية المقاومة' }, description: { en: 'High strength concrete mix recipe', ar: 'وصفة خلطة خرسانة عالية المقاومة' }, version: 'v1', company: 'XYZ Construction', active: true },
-  { code: 'RC-0020', name: { en: 'Lean Concrete', ar: 'خرسانة هزيلة' }, title: { en: 'Lean Concrete', ar: 'خرسانة هزيلة' }, description: { en: 'Lean concrete mix recipe', ar: 'وصفة خلطة خرسانة هزيلة' }, version: 'v2', company: 'BuildWell Ltd.', active: true },
-  { code: 'RC-0031', name: { en: 'Pump Concrete', ar: 'خرسانة مضخوخة' }, title: { en: 'Pump Concrete', ar: 'خرسانة مضخوخة' }, description: { en: 'Pump concrete mix recipe', ar: 'وصفة خلطة خرسانة مضخوخة' }, version: 'v1', company: 'ABC Concrete Company', active: false },
-  { code: 'RC-0045', name: { en: 'High Performance', ar: 'خرسانة عالية الأداء' }, title: { en: 'High Performance', ar: 'خرسانة عالية الأداء' }, description: { en: 'High performance concrete mix recipe', ar: 'وصفة خلطة خرسانة عالية الأداء' }, version: 'v1', company: 'Premier Construction', active: true },
-  { code: 'RC-0050', name: { en: 'Rapid Set Concrete', ar: 'خرسانة سريعة التصلب' }, title: { en: 'Rapid Set Concrete', ar: 'خرسانة سريعة التصلب' }, description: { en: 'Rapid set concrete mix recipe', ar: 'وصفة خلطة خرسانة سريعة التصلب' }, version: 'v2', company: 'Metro Materials', active: true },
-  { code: 'RC-0055', name: { en: 'Decorative Concrete', ar: 'خرسانة زخرفية' }, title: { en: 'Decorative Concrete', ar: 'خرسانة زخرفية' }, description: { en: 'Decorative concrete mix recipe', ar: 'وصفة خلطة خرسانة زخرفية' }, version: 'v1', company: 'Premier Construction', active: true },
-  { code: 'RC-0060', name: { en: 'Self-Compacting Concrete', ar: 'خرسانة ذاتية الدمك' }, title: { en: 'Self-Compacting Concrete', ar: 'خرسانة ذاتية الدمك' }, description: { en: 'Self-compacting concrete mix recipe', ar: 'وصفة خلطة خرسانة ذاتية الدمك' }, version: 'v3', company: 'XYZ Construction', active: true },
-  { code: 'RC-0065', name: { en: 'Fiber Reinforced Concrete', ar: 'خرسانة مسلحة بالألياف' }, title: { en: 'Fiber Reinforced Concrete', ar: 'خرسانة مسلحة بالألياف' }, description: { en: 'Fiber reinforced concrete mix recipe', ar: 'وصفة خلطة خرسانة مسلحة بالألياف' }, version: 'v2', company: 'BuildWell Ltd.', active: true },
-  { code: 'RC-0070', name: { en: 'Lightweight Concrete', ar: 'خرسانة خفيفة الوزن' }, title: { en: 'Lightweight Concrete', ar: 'خرسانة خفيفة الوزن' }, description: { en: 'Lightweight concrete mix recipe', ar: 'وصفة خلطة خرسانة خفيفة الوزن' }, version: 'v1', company: 'ABC Concrete Company', active: false },
-  { code: 'RC-0075', name: { en: 'Waterproof Concrete', ar: 'خرسانة مقاومة للماء' }, title: { en: 'Waterproof Concrete', ar: 'خرسانة مقاومة للماء' }, description: { en: 'Waterproof concrete mix recipe', ar: 'وصفة خلطة خرسانة مقاومة للماء' }, version: 'v2', company: 'Metro Materials', active: true },
-  { code: 'RC-0080', name: { en: 'Recycled Aggregate Concrete', ar: 'خرسانة بركام معاد التدوير' }, title: { en: 'Recycled Aggregate Concrete', ar: 'خرسانة بركام معاد التدوير' }, description: { en: 'Recycled aggregate concrete mix recipe', ar: 'وصفة خلطة خرسانة بركام معاد التدوير' }, version: 'v1', company: 'GreenBuild Ltd.', active: true },
-  { code: 'RC-0085', name: { en: 'Cold Weather Concrete', ar: 'خرسانة للطقس البارد' }, title: { en: 'Cold Weather Concrete', ar: 'خرسانة للطقس البارد' }, description: { en: 'Cold weather concrete mix recipe', ar: 'وصفة خلطة خرسانة للطقس البارد' }, version: 'v2', company: 'XYZ Construction', active: true },
-  { code: 'RC-0090', name: { en: 'Bridge Deck Concrete', ar: 'خرسانة بلاطات الجسور' }, title: { en: 'Bridge Deck Concrete', ar: 'خرسانة بلاطات الجسور' }, description: { en: 'Bridge deck concrete mix recipe', ar: 'وصفة خلطة خرسانة بلاطات الجسور' }, version: 'v4', company: 'Premier Construction', active: true },
-  { code: 'RC-0095', name: { en: 'Pavement Concrete', ar: 'خرسانة الرصف' }, title: { en: 'Pavement Concrete', ar: 'خرسانة الرصف' }, description: { en: 'Pavement concrete mix recipe', ar: 'وصفة خلطة خرسانة الرصف' }, version: 'v1', company: 'BuildWell Ltd.', active: true },
+// Example/demo data, shown only while the showTemplate property is true. When
+// the container turns it off the same cards are meant to be filled from an
+// external query instead, so the list renders empty rather than falling back.
+//
+// Shape mirrors the recipes table one-to-one: id, plant_id, code, name,
+// description, is_active, created_at, updated_at. Text columns are plain
+// strings, so the same values render in both languages.
+const templateRecipes = [
+  { id: 1, plant_id: 1, code: 'RC-0025', name: 'Standard Concrete', description: 'Standard concrete mix recipe', is_active: true, created_at: '2026-01-12T08:15:00Z', updated_at: '2026-08-03T10:42:00Z' },
+  { id: 2, plant_id: 1, code: 'RC-0030', name: 'Standard Concrete', description: 'Standard concrete mix recipe', is_active: true, created_at: '2026-01-20T09:05:00Z', updated_at: '2026-09-01T14:20:00Z' },
+  { id: 3, plant_id: 2, code: 'RC-0035', name: 'High Strength Concrete', description: 'High strength concrete mix recipe', is_active: true, created_at: '2026-02-02T11:30:00Z', updated_at: '2026-07-18T16:05:00Z' },
+  { id: 4, plant_id: 2, code: 'RC-0040', name: 'High Strength Concrete', description: 'High strength concrete mix recipe', is_active: true, created_at: '2026-02-14T13:45:00Z', updated_at: '2026-06-22T09:10:00Z' },
+  { id: 5, plant_id: 3, code: 'RC-0020', name: 'Lean Concrete', description: 'Lean concrete mix recipe', is_active: true, created_at: '2026-01-05T07:50:00Z', updated_at: '2026-05-30T11:55:00Z' },
+  { id: 6, plant_id: 1, code: 'RC-0031', name: 'Pump Concrete', description: 'Pump concrete mix recipe', is_active: false, created_at: '2026-02-21T15:20:00Z', updated_at: '2026-08-27T08:35:00Z' },
+  { id: 7, plant_id: 4, code: 'RC-0045', name: 'High Performance', description: 'High performance concrete mix recipe', is_active: true, created_at: '2026-03-03T10:00:00Z', updated_at: '2026-09-05T12:15:00Z' },
+  { id: 8, plant_id: 5, code: 'RC-0050', name: 'Rapid Set Concrete', description: 'Rapid set concrete mix recipe', is_active: true, created_at: '2026-03-17T12:25:00Z', updated_at: '2026-07-09T15:40:00Z' },
+  { id: 9, plant_id: 4, code: 'RC-0055', name: 'Decorative Concrete', description: 'Decorative concrete mix recipe', is_active: true, created_at: '2026-03-29T09:35:00Z', updated_at: '2026-06-11T10:05:00Z' },
+  { id: 10, plant_id: 2, code: 'RC-0060', name: 'Self-Compacting Concrete', description: 'Self-compacting concrete mix recipe', is_active: true, created_at: '2026-04-08T14:10:00Z', updated_at: '2026-08-19T13:50:00Z' },
+  { id: 11, plant_id: 3, code: 'RC-0065', name: 'Fiber Reinforced Concrete', description: 'Fiber reinforced concrete mix recipe', is_active: true, created_at: '2026-04-19T08:55:00Z', updated_at: '2026-09-10T09:25:00Z' },
+  { id: 12, plant_id: 1, code: 'RC-0070', name: 'Lightweight Concrete', description: 'Lightweight concrete mix recipe', is_active: false, created_at: '2026-05-02T11:15:00Z', updated_at: '2026-05-28T16:30:00Z' },
+  { id: 13, plant_id: 5, code: 'RC-0075', name: 'Waterproof Concrete', description: 'Waterproof concrete mix recipe', is_active: true, created_at: '2026-05-16T13:05:00Z', updated_at: '2026-08-08T11:45:00Z' },
+  { id: 14, plant_id: 6, code: 'RC-0080', name: 'Recycled Aggregate Concrete', description: 'Recycled aggregate concrete mix recipe', is_active: true, created_at: '2026-06-01T09:40:00Z', updated_at: '2026-09-12T15:10:00Z' },
+  { id: 15, plant_id: 2, code: 'RC-0085', name: 'Cold Weather Concrete', description: 'Cold weather concrete mix recipe', is_active: true, created_at: '2026-06-23T10:20:00Z', updated_at: '2026-07-31T08:20:00Z' },
+  { id: 16, plant_id: 4, code: 'RC-0090', name: 'Bridge Deck Concrete', description: 'Bridge deck concrete mix recipe', is_active: true, created_at: '2026-07-07T12:50:00Z', updated_at: '2026-09-13T17:00:00Z' },
+  { id: 17, plant_id: 3, code: 'RC-0095', name: 'Pavement Concrete', description: 'Pavement concrete mix recipe', is_active: true, created_at: '2026-07-25T08:30:00Z', updated_at: '2026-08-30T14:05:00Z' },
 ]
 
-const companies = {
-  'ABC Concrete Company': 'شركة ABC للخرسانة',
-  'XYZ Construction': 'شركة XYZ للإنشاءات',
-  'BuildWell Ltd.': 'شركة BuildWell المحدودة',
-  'Premier Construction': 'شركة Premier للإنشاءات',
-  'Metro Materials': 'شركة Metro للمواد',
-  'GreenBuild Ltd.': 'شركة GreenBuild المحدودة',
+/**
+ * Render a timestamp column as `DD-MM-YYYY hh:mm`, or '' when absent.
+ *
+ * Local time, not UTC: the stored timestamps are UTC, but an operator reading
+ * a clock time off the card expects wall-clock time at the plant.
+ *
+ * The separators are bidi-neutral, so the digit groups would be reordered in
+ * an RTL card. Callers render the result with dir="ltr" to pin it.
+ */
+function formatDate(timestamp) {
+  if (!timestamp) return ''
+  const parsed = new Date(timestamp)
+  if (Number.isNaN(parsed.getTime())) return ''
+  const pad = (value) => String(value).padStart(2, '0')
+  const date = `${pad(parsed.getDate())}-${pad(parsed.getMonth() + 1)}-${parsed.getFullYear()}`
+  return `${date} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`
 }
 
 const labels = {
   en: {
     recipeList: 'RECIPE LIST', newRecipe: 'New Recipe', search: 'Search recipe...',
     itemsPerPage: 'Items per page', recipePages: 'Recipe pages', selectPage: 'Select recipe page',
-    previous: 'Previous page', next: 'Next page', active: 'Active', inactive: 'Inactive',
+    previous: 'Previous page', next: 'Next page',
+    created: 'Created', updated: 'Last updated', active: 'Active', inactive: 'Inactive',
+    noRecipes: 'No recipes to display',
   },
   ar: {
     recipeList: 'قائمة الوصفات', newRecipe: 'وصفة جديدة', search: 'البحث عن وصفة...',
     itemsPerPage: 'العناصر في الصفحة', recipePages: 'صفحات الوصفات', selectPage: 'اختر صفحة الوصفات',
-    previous: 'الصفحة السابقة', next: 'الصفحة التالية', active: 'نشطة', inactive: 'غير نشطة',
+    previous: 'الصفحة السابقة', next: 'الصفحة التالية',
+    created: 'أُنشئت', updated: 'آخر تحديث', active: 'نشطة', inactive: 'غير نشطة',
+    noRecipes: 'لا توجد وصفات للعرض',
   },
 }
 
@@ -51,9 +72,11 @@ function RecipeCard({ recipe, selected, onSelect, language }) {
   const handleKeyDown = (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      onSelect(selected ? null : recipe.code)
+      onSelect(selected ? null : recipe.id)
     }
   }
+  const created = formatDate(recipe.created_at)
+  const updated = formatDate(recipe.updated_at)
 
   return (
     <article
@@ -61,49 +84,83 @@ function RecipeCard({ recipe, selected, onSelect, language }) {
       role="button"
       tabIndex="0"
       aria-pressed={selected}
-      onClick={() => onSelect(selected ? null : recipe.code)}
+      onClick={() => onSelect(selected ? null : recipe.id)}
       onKeyDown={handleKeyDown}
     >
       <div className="recipe-card__title-row">
-        <strong>{recipe.code.replace('RC-', 'C')} - {recipe.title[language]}</strong>
-        <span className="recipe-card__version">{recipe.version}</span>
+        <strong>{recipe.name}</strong>
+        <span className={`recipe-card__status${recipe.is_active ? '' : ' recipe-card__status--inactive'}`}>
+          {recipe.is_active ? text.active : text.inactive}
+        </span>
       </div>
       <div className="recipe-card__code">{recipe.code}</div>
-      <p className="recipe-card__description">{recipe.description[language]}</p>
+      <p className="recipe-card__description">{recipe.description}</p>
       <div className="recipe-card__footer">
-        <span>{language === 'ar' ? companies[recipe.company] : recipe.company}</span>
-        <span className="recipe-card__status-group">
-          <span className="recipe-card__version-badge">{recipe.version}</span>
-          <span className={`recipe-card__status${recipe.active ? '' : ' recipe-card__status--inactive'}`}>
-            {recipe.active ? text.active : text.inactive}
-          </span>
+        <span className="recipe-card__dates">
+          {created && (
+            <>
+              <span className="recipe-card__date-label">{text.created}:</span>
+              <span className="recipe-card__date-value" dir="ltr">{created}</span>
+            </>
+          )}
+          {updated && (
+            <>
+              <span className="recipe-card__date-label">{text.updated}:</span>
+              <span className="recipe-card__date-value" dir="ltr">{updated}</span>
+            </>
+          )}
         </span>
       </div>
     </article>
   )
 }
 
-export default function RecipeList({ language = 'en' }) {
+export default function RecipeList({ language = 'en', itemsPerPage = 15, onItemsPerPageChange, showTemplate = true, recipes: recipesProp }) {
   const text = labels[language]
-  const [cardsPerPage, setCardsPerPage] = useState(15)
+  // Owned by the container via the RecipeItemsPerPage property; the input below
+  // reports upward rather than setting it here.
+  const cardsPerPage = Number.isInteger(itemsPerPage) && itemsPerPage >= 1 ? itemsPerPage : 15
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedRecipe, setSelectedRecipe] = useState('RC-0030')
+  const [selectedRecipe, setSelectedRecipe] = useState(null)
   const [hasScrollableCards, setHasScrollableCards] = useState(false)
   const searchTerms = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  // Supplied rows win whenever CreateCards has delivered any, so the control is
+  // useful without waiting for the container to think about showTemplate. The
+  // template stands in only while nothing has been supplied and the flag is on;
+  // with neither, the list is legitimately empty.
+  //
+  // Null vs [] carries the distinction: null is "never supplied", while an
+  // empty array is a real result and renders no cards rather than falling back
+  // to the demo rows. Both sources go through the builder, so the cards below
+  // see one shape regardless of origin.
+  const recipes = buildCards(
+    recipesProp ?? (showTemplate ? templateRecipes : [])
+  )
+  // Matches on title or code only — the description is deliberately not
+  // indexed, so a word common to every description cannot match everything.
+  //
+  // Title matches on word prefixes ("hi str" finds "High Strength Concrete"),
+  // while the code matches as a substring: splitting it into words would make
+  // the full code "RC-0095" unmatchable, since the query keeps the hyphen the
+  // split discards.
   const filteredRecipes = recipes.filter((recipe) => {
     if (!searchTerms.length) return true
-    const searchableText = `${recipe.code} ${recipe.name.en} ${recipe.name.ar} ${recipe.company} ${recipe.title.en} ${recipe.title.ar} ${recipe.description.en} ${recipe.description.ar}`.toLowerCase()
-    const words = searchableText.split(/[^\p{L}\p{N}]+/u).filter(Boolean)
-    return searchTerms.every((term) => words.some((word) => word.startsWith(term)))
+    const code = String(recipe.code ?? '').toLowerCase()
+    const titleWords = String(recipe.name ?? '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+    return searchTerms.every((term) =>
+      code.includes(term) || titleWords.some((word) => word.startsWith(term)))
   })
   const totalPages = Math.max(1, Math.ceil(filteredRecipes.length / cardsPerPage))
-  const firstRecipeIndex = (currentPage - 1) * cardsPerPage
+  // A page size pushed down from the container can leave the current page past
+  // the end, so clamp for this render rather than showing an empty list.
+  const activePage = Math.min(currentPage, totalPages)
+  const firstRecipeIndex = (activePage - 1) * cardsPerPage
   const visibleRecipes = filteredRecipes.slice(firstRecipeIndex, firstRecipeIndex + cardsPerPage)
   const handleCardsPerPageChange = (event) => {
     const nextCardsPerPage = Number(event.target.value)
     if (!Number.isInteger(nextCardsPerPage) || nextCardsPerPage < 1) return
-    setCardsPerPage(nextCardsPerPage)
+    onItemsPerPageChange?.(nextCardsPerPage)
     setCurrentPage(1)
   }
 
@@ -139,12 +196,15 @@ export default function RecipeList({ language = 'en' }) {
         events={{ updated: (instance) => setHasScrollableCards(instance.state().hasOverflow.y) }}
       >
         <div className="recipe-cards__content">
+          {visibleRecipes.length === 0 && (
+            <p className="recipe-cards__empty">{text.noRecipes}</p>
+          )}
           {visibleRecipes.map((recipe) => (
             <RecipeCard
-              key={recipe.code}
+              key={recipe.id}
               recipe={recipe}
               language={language}
-              selected={selectedRecipe === recipe.code}
+              selected={selectedRecipe === recipe.id}
               onSelect={setSelectedRecipe}
             />
           ))}
@@ -158,7 +218,7 @@ export default function RecipeList({ language = 'en' }) {
             min="1"
             step="1"
             value={cardsPerPage}
-            aria-label={text.cardsPerPage}
+            aria-label={text.itemsPerPage}
             onChange={handleCardsPerPageChange}
           />
         </label>
@@ -169,8 +229,8 @@ export default function RecipeList({ language = 'en' }) {
             className="pagination-control"
             type="button"
             aria-label={text.previous}
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((page) => page - 1)}
+            disabled={activePage === 1}
+            onClick={() => setCurrentPage(activePage - 1)}
           >
             <ChevronLeft size={20} />
           </button>
@@ -178,7 +238,7 @@ export default function RecipeList({ language = 'en' }) {
             <span className="sr-only">{text.selectPage}</span>
             <select
               className="pagination-control pagination-page-select"
-              value={currentPage}
+              value={activePage}
               aria-label={text.selectPage}
               onChange={(event) => setCurrentPage(Number(event.target.value))}
             >
@@ -192,8 +252,8 @@ export default function RecipeList({ language = 'en' }) {
             className="pagination-control"
             type="button"
             aria-label={text.next}
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((page) => page + 1)}
+            disabled={activePage === totalPages}
+            onClick={() => setCurrentPage(activePage + 1)}
           >
             <ChevronRight size={20} />
           </button>

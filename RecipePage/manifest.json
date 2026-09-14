@@ -15,7 +15,25 @@
     },
     "contracts": {
       "api": {
-        "methods": {},
+        "methods": {
+          
+          "Print": {
+            "parameters": {
+              "data": {
+                "type": "string"
+              }
+            },
+            "description": "Write a diagnostic message to the control's console and status line."
+          },
+          "CreateCards": {
+            "parameters": {
+              "data": {
+                "type": "string"
+              }
+            },
+            "description": "Write a diagnostic message to the control's console and status line."
+          }
+        },
         "events": {
           "onPressingIcon": {
             "arguments": {
@@ -36,6 +54,13 @@
               }
             },
             "description": "Fires when the operator selects a language."
+          },
+          "onRecipeItemsPerPageChange": {
+            "arguments": {
+              "value": {
+                "type": "number"
+              }
+            }
           }
         },
         "properties": {
@@ -43,11 +68,14 @@
             "type": "string",
             "default": "en"
           },
-          "selectedItemNumber": {
+          "RecipeItemsPerPage": {
             "type": "number",
-            "default": 0,
-            "minimum": 0,
-            "maximum": 10
+            "default": 5,
+            "minimum": 1
+          },
+          "showTemplate" : {
+            "type" : "boolean",
+            "default" :true
           }
         }
       }
