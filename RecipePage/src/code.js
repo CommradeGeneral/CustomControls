@@ -25,6 +25,8 @@ window.RecipeBridge = {
   onRecipeItemsPerPage: null,
   onShowTemplate: null,
   onRecipes: null,
+  onNewRecipeMessage: null,
+  onClearSidePage: null,
   // Filled in by React; called when connected/settled changes so the gate can
   // re-render. `connected` is a plain field and is not observable on its own.
   onConnected: null,
@@ -238,9 +240,40 @@ WebCC.start(
        */
       CreateCards: function (data) {
         bridgeCreateCards(data);
+      },
+
+      /**
+       * Report the outcome of a create attempt on the new-recipe form.
+       *
+       * 0 = the recipe was created, 1 = it could not be written to the
+       * database. Any other number clears the message, which is how the
+       * container withdraws one without waiting for a timeout.
+       *
+       * timeout is milliseconds; zero or less leaves the message on screen
+       * until the form is closed or edited.
+       */
+      NewRecipeMessage: function (MessageNumber, Timeout) {
+        console.log('[RecipePage] NewRecipeMessage called with', MessageNumber, Timeout);
+        bridgeDispatch('NewRecipeMessage', {
+          code: Number(MessageNumber),
+          duration: Number(Timeout) || 0
+        });
+      },
+
+      /**
+       * Return the main pane to its empty state, dropping whichever of the
+       * detail view or the new-recipe form is showing.
+       *
+       * Takes no parameters, so it carries a counter rather than a value: the
+       * React side has to be able to tell a second call from a repeat of the
+       * first, and identical state would be ignored as equal.
+       */
+      ClearSidePage: function () {
+        console.log('[RecipePage] ClearSidePage called');
+        bridgeDispatch('ClearSidePage', Date.now());
       }
     },
-    events: ['onPressingIcon', 'onLoginOut', 'onLanguageChange', 'onRecipeItemsPerPageChange'],
+    events: ['onPressingIcon', 'onLoginOut', 'onCardSelect', 'onRecipeCreate', 'onLanguageChange', 'onRecipeItemsPerPageChange'],
     properties: {
       Language: 'en',
       selectedItemNumber: 0,

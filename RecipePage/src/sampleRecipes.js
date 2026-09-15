@@ -23,6 +23,7 @@ export const sampleRecipePayload = {
   "11": { code: 'RC-1012', created_at: [1772546808, 760000000], description: 'Fiber Reinforced Concrete production mix recipe', id: '12', is_active: '1', name: 'Fiber Reinforced Concrete', plant_id: '10', updated_at: [1772628528, 760000000] },
 }
 
+
 /**
  * Push the sample payload through the real CreateCards entry point.
  *

@@ -32,6 +32,21 @@
               }
             },
             "description": "Write a diagnostic message to the control's console and status line."
+          },
+          "NewRecipeMessage": {
+            "parameters": {
+              "MessageNumber": {
+                "type": "number"
+              },
+              "Timeout": {
+                "type": "number"
+              }
+            }
+          },
+          "ClearSidePage": {
+            "parameters": {
+
+            }
           }
         },
         "events": {
@@ -46,6 +61,22 @@
           "onLoginOut": {
             "arguments": {},
             "description": "Fires when the sign-out button is pressed."
+          },
+          "onCardSelect": {
+            "arguments": {
+              "recipe": {
+                "type": "string"
+              }
+            },
+            "description": "Fires when a recipe card is selected, carrying the whole row as a JSON string. Fires with an empty string when the selection is cleared."
+          },
+          "onRecipeCreate": {
+            "arguments": {
+              "recipe": {
+                "type": "string"
+              }
+            },
+            "description": "Fires when the operator submits the new-recipe form, carrying the draft as a JSON string. The control does not persist anything itself."
           },
           "onLanguageChange": {
             "arguments": {

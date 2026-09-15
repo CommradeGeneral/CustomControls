@@ -1,0 +1,49 @@
+/*
+ * Close button, pinned to the pane's top corner.
+ *
+ * inset-inline-end rather than right: the logical property resolves against the
+ * dir its container sets, so the button sits top-right in English and top-left
+ * in Arabic with no second rule and no language check in the JSX.
+ *
+ * Borderless by default - a framed button in the corner competes with the
+ * pane's own border - picking up the panel's usual #f7faff/#5e91d2 treatment
+ * only on hover and focus.
+ *
+ * z-index keeps it above the pane contents: the loading label is centred and
+ * would otherwise be able to overlap it at narrow widths.
+ */
+.pane-close {
+  position: absolute;
+  z-index: 1;
+  top: 0.5em;
+  inset-inline-end: 0.5em;
+  display: grid;
+  width: 1.6em;
+  height: 1.6em;
+  box-sizing: border-box;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #6b7280;
+  background: transparent;
+  font-size: 0.85em;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+}
+
+.pane-close:hover,
+.pane-close:focus-visible {
+  border-color: #5e91d2;
+  color: #2466c1;
+  background: #f7faff;
+  outline: none;
+}
+
+/* Matches the guard .recipe-card and the spinner already use. */
+@media (prefers-reduced-motion: reduce) {
+  .pane-close {
+    transition: none;
+  }
+}

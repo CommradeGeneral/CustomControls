@@ -1,0 +1,266 @@
+/*
+ * Components table for the new-recipe form's second step.
+ *
+ * Borrows the recipe panel's input and button idiom (1px #e1e4e9, 4px radius,
+ * #34445a on white, #f7faff/#5e91d2 on hover) rather than inventing a second
+ * one, and is sized in em against the 22px root like the rest of this pane.
+ */
+.components {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.6em;
+}
+
+.components__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+}
+
+.components__heading {
+  margin: 0;
+  color: #34445a;
+  font-size: 0.95em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.components__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  box-sizing: border-box;
+  padding: 0.35em 0.8em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  color: #2466c1;
+  background: #fff;
+  box-shadow: 0 1px 2px #27303d14;
+  font-family: inherit;
+  font-size: 0.8em;
+  line-height: 1.45;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.components__add:hover,
+.components__add:focus-visible {
+  border-color: #5e91d2;
+  background: #f7faff;
+  outline: none;
+}
+
+/*
+ * The table scrolls sideways here rather than widening the pane: seven columns
+ * do not fit a narrow pane, and the pane itself must never scroll horizontally.
+ */
+.components__scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.components__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8em;
+}
+
+.components__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.5em 0.6em;
+  border-bottom: 1px solid #e1e4e9;
+  color: #526176;
+  background: #f8f9fa;
+  font-weight: 700;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.components__table td {
+  padding: 0.35em 0.5em;
+  border-bottom: 1px solid #eef0f3;
+  color: #34445a;
+  vertical-align: middle;
+}
+
+.components__table tr:last-child td {
+  border-bottom: none;
+}
+
+/*
+ * Alignment is declared on both th and td so the header and the cells below it
+ * always agree. The bare `.components__table th` rule sets text-align: start,
+ * which beat a single-class rule on the header only - leaving the # header at
+ * the start of its column while the numbers under it sat centred.
+ */
+.components__table th.components__col-index,
+.components__table td.components__col-index {
+  width: 2.5em;
+  color: #6b7280;
+  text-align: start;
+}
+
+/*
+ * Shrink-wrapped to its contents: width: 1% collapses the column to the
+ * narrowest size its content allows, and nowrap stops the header word from
+ * wrapping to achieve it. The icon is centred within whatever that leaves.
+ */
+.components__table th.components__col-actions,
+.components__table td.components__col-actions {
+  width: 1%;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/*
+ * Derived from the chosen material, so it is shown rather than edited. Tabular
+ * figures keep the codes aligned down the column, and the cell is pinned LTR
+ * because a code is an ASCII identifier even in an Arabic layout.
+ */
+/*
+ * Derived from the chosen material, so it is shown rather than edited. The
+ * cell stays in the row's direction so it aligns with its column header; only
+ * the code's own glyphs are forced LTR, by a span in the markup. Setting dir
+ * on the cell instead pinned the text to the left edge of an RTL row.
+ */
+.components__col-code {
+  /* Matches .components__col-material exactly - the two are a name/code pair
+     and reading them as one unit depends on their sharing a width. */
+  width: 12em;
+  /* Now hosts a dropdown rather than bare text, so it needs the same
+     positioning context its twin has - without it the code popup is painted
+     under the rows below instead of over them. */
+  position: relative;
+  color: #526176;
+  font-variant-numeric: tabular-nums;
+  text-align: start;
+}
+
+.components__col-code:has(.sselect__popup) {
+  z-index: 5;
+}
+
+/* Narrow: a target quantity is a few digits, not a sentence. */
+.components__col-qty {
+  width: 6.5em;
+}
+
+.components__empty {
+  padding: 1.5em 0.6em;
+  color: #6b7280;
+  text-align: center;
+}
+
+.components__input {
+  width: 100%;
+  min-width: 6em;
+  box-sizing: border-box;
+  padding: 0.35em 0.5em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  color: #34445a;
+  background: #fff;
+  font-family: inherit;
+  font-size: 1em;
+  line-height: 1.45;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.components__input:focus {
+  border-color: #5e91d2;
+  box-shadow: 0 0 0 2px #2466c11f;
+  outline: none;
+}
+
+.components__input::placeholder {
+  color: #b9c0ca;
+}
+
+.components__input--number {
+  min-width: 4.5em;
+}
+
+
+/*
+ * The material cell hosts a combobox whose popup overhangs the row.
+ *
+ * No blanket z-index here: giving every material cell the same one made each a
+ * stacking context at the same level, and among equal peers the later sibling
+ * paints on top - so every row below an open popup covered it. Only the cell
+ * whose popup is open is raised, via :has(), and it is raised above the sticky
+ * header too so a popup near the top is not sliced by it.
+ *
+ * The popup itself is positioned fixed (see SearchableSelect.css), so this
+ * container's overflow no longer clips it.
+ */
+.components__col-material {
+  position: relative;
+  /* width, not min-width: paired with .components__col-code at the same value
+     so neither column can be stretched past the other by its contents. */
+  width: 12em;
+}
+
+.components__col-material:has(.sselect__popup) {
+  z-index: 5;
+}
+
+/*
+ * inline-grid, not grid: a block-level box fills the cell and ignores the
+ * cell's text-align, so in a shrink-wrapped Actions column the button would
+ * sit against the start edge. Inline-level lets text-align: center place it,
+ * while place-items still centres the icon inside the button.
+ */
+.components__remove {
+  display: inline-grid;
+  width: 1.8em;
+  height: 1.8em;
+  vertical-align: middle;
+  box-sizing: border-box;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #b4443a;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.components__remove:hover,
+.components__remove:focus-visible {
+  border-color: #e2b3ae;
+  background: #fdf5f4;
+  outline: none;
+}
+
+.components__totals {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6em;
+  color: #526176;
+  font-size: 0.8em;
+}
+
+.components__totals strong {
+  color: #34445a;
+}
+
+/* Matches the guard .recipe-card and the spinner already use. */
+@media (prefers-reduced-motion: reduce) {
+  .components__add,
+  .components__input,
+  .components__remove {
+    transition: none;
+  }
+}

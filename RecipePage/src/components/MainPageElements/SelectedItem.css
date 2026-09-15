@@ -1,0 +1,47 @@
+/*
+ * Wrapper for the selected-item pane.
+ *
+ * Exists to be the positioning context for the corner close button, which is
+ * owned here rather than by the individual states so it stays put when the
+ * loading view is swapped for the loaded detail.
+ *
+ * Fills its parent and lets the inner state fill it in turn, so .loading-page's
+ * height: 100% still resolves against the full pane rather than collapsing to
+ * the height of its own content.
+ */
+.selected-item {
+  position: relative;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
+/*
+ * Placeholder body for the loaded state. Keeps the same surface as the loading
+ * and empty panes so the three do not jump between each other; replace the
+ * contents, not the box, when the real detail view lands.
+ */
+.selected-item__body {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  padding: 1.2em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 2px #27303d0b;
+  text-align: center;
+}
+
+.selected-item__title {
+  margin: 0;
+  color: #34445a;
+  font-size: 1.1em;
+  font-weight: 700;
+}

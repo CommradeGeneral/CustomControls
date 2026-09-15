@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
 import buildCards from './buildCards'
+import PageSelect from './PageSelect'
 import './RecipeList.css'
 
 // Example/demo data, shown only while the showTemplate property is true. When
@@ -35,8 +36,13 @@ const templateRecipes = [
 /**
  * Render a timestamp column as `DD-MM-YYYY hh:mm`, or '' when absent.
  *
- * Local time, not UTC: the stored timestamps are UTC, but an operator reading
- * a clock time off the card expects wall-clock time at the plant.
+ * UTC, not local time. The stored timestamps are UTC, and rendering them
+ * through the local-time getters silently shifted every card by the viewing
+ * machine's offset - on a UTC+2 zone with summer time that showed as +2 or +3
+ * depending on the date, so the same row disagreed with the database by a
+ * different amount depending on when it was written. Reading UTC back out
+ * keeps the card, the database and every client identical regardless of where
+ * the panel is opened.
  *
  * The separators are bidi-neutral, so the digit groups would be reordered in
  * an RTL card. Callers render the result with dir="ltr" to pin it.
@@ -46,8 +52,8 @@ function formatDate(timestamp) {
   const parsed = new Date(timestamp)
   if (Number.isNaN(parsed.getTime())) return ''
   const pad = (value) => String(value).padStart(2, '0')
-  const date = `${pad(parsed.getDate())}-${pad(parsed.getMonth() + 1)}-${parsed.getFullYear()}`
-  return `${date} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`
+  const date = `${pad(parsed.getUTCDate())}-${pad(parsed.getUTCMonth() + 1)}-${parsed.getUTCFullYear()}`
+  return `${date} ${pad(parsed.getUTCHours())}:${pad(parsed.getUTCMinutes())}`
 }
 
 const labels = {
@@ -115,14 +121,19 @@ function RecipeCard({ recipe, selected, onSelect, language }) {
   )
 }
 
-export default function RecipeList({ language = 'en', itemsPerPage = 15, onItemsPerPageChange, showTemplate = true, recipes: recipesProp }) {
+export default function RecipeList({ language = 'en', itemsPerPage = 15, onItemsPerPageChange, showTemplate = true, recipes: recipesProp, onCardSelect, onSelectedRowChange, selectedId, onNewRecipe }) {
   const text = labels[language]
   // Owned by the container via the RecipeItemsPerPage property; the input below
   // reports upward rather than setting it here.
   const cardsPerPage = Number.isInteger(itemsPerPage) && itemsPerPage >= 1 ? itemsPerPage : 15
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
+  // Mirrors the id the parent holds when it supplies one, so a clear issued
+  // from elsewhere in the control (the detail pane's deselect) unhighlights the
+  // card too. Uncontrolled when the prop is absent, which is how the list
+  // behaves on its own.
   const [selectedRecipe, setSelectedRecipe] = useState(null)
+  const effectiveSelectedId = selectedId === undefined ? selectedRecipe : selectedId
   const [hasScrollableCards, setHasScrollableCards] = useState(false)
   const searchTerms = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean)
   // Supplied rows win whenever CreateCards has delivered any, so the control is
@@ -157,6 +168,46 @@ export default function RecipeList({ language = 'en', itemsPerPage = 15, onItems
   const activePage = Math.min(currentPage, totalPages)
   const firstRecipeIndex = (activePage - 1) * cardsPerPage
   const visibleRecipes = filteredRecipes.slice(firstRecipeIndex, firstRecipeIndex + cardsPerPage)
+  /**
+   * Commit a selection and report it upward.
+   *
+   * RecipeCard passes the id (or null when toggling itself off), so the row is
+   * resolved from it here rather than widening the card's contract. The
+   * normalized row is sent, not the original payload entry: the container gets
+   * the same field names and coerced types the card displays, instead of the
+   * container's own spelling echoed back at it.
+   *
+   * Deselection reports an empty string, which is the manifest's declared
+   * "nothing selected" - a cleared selection has to be distinguishable from no
+   * event at all.
+   */
+  const handleCardSelect = (recipeId) => {
+    setSelectedRecipe(recipeId)
+
+    const row = recipeId === null || recipeId === undefined
+      ? null
+      : recipes.find((recipe) => recipe.id === recipeId) ?? null
+
+    // Two consumers, two shapes. The pane beside the list wants the row object
+    // itself; TIA's contract declares a string, so it gets the serialized form.
+    // Reported separately rather than making React re-parse what was just
+    // stringified.
+    onSelectedRowChange?.(row)
+
+    if (!onCardSelect) return
+    if (!row) {
+      onCardSelect('')
+      return
+    }
+    try {
+      onCardSelect(JSON.stringify(row))
+    } catch (error) {
+      // A row that cannot be serialized must not take the panel down with it.
+      console.warn('[RecipePage] onCardSelect: row is not serializable', error)
+      onCardSelect('')
+    }
+  }
+
   const handleCardsPerPageChange = (event) => {
     const nextCardsPerPage = Number(event.target.value)
     if (!Number.isInteger(nextCardsPerPage) || nextCardsPerPage < 1) return
@@ -169,7 +220,7 @@ export default function RecipeList({ language = 'en', itemsPerPage = 15, onItems
       <div className="recipe-panel__top">
         <div className="recipe-panel__heading">
           <h2>{text.recipeList}</h2>
-          <button className="new-recipe-button" type="button"><Plus size={15} /> {text.newRecipe}</button>
+          <button className="new-recipe-button" type="button" onClick={onNewRecipe}><Plus size={15} /> {text.newRecipe}</button>
         </div>
         <div className="recipe-tools">
           <label className="recipe-search">
@@ -204,8 +255,8 @@ export default function RecipeList({ language = 'en', itemsPerPage = 15, onItems
               key={recipe.id}
               recipe={recipe}
               language={language}
-              selected={selectedRecipe === recipe.id}
-              onSelect={setSelectedRecipe}
+              selected={effectiveSelectedId === recipe.id}
+              onSelect={handleCardSelect}
             />
           ))}
         </div>
@@ -234,20 +285,12 @@ export default function RecipeList({ language = 'en', itemsPerPage = 15, onItems
           >
             <ChevronLeft size={20} />
           </button>
-          <label>
-            <span className="sr-only">{text.selectPage}</span>
-            <select
-              className="pagination-control pagination-page-select"
-              value={activePage}
-              aria-label={text.selectPage}
-              onChange={(event) => setCurrentPage(Number(event.target.value))}
-            >
-              {Array.from({ length: totalPages }, (_, index) => {
-                const page = index + 1
-                return <option key={page} value={page}>{page}/{totalPages}</option>
-              })}
-            </select>
-          </label>
+          <PageSelect
+            page={activePage}
+            totalPages={totalPages}
+            label={text.selectPage}
+            onChange={setCurrentPage}
+          />
           <button
             className="pagination-control"
             type="button"

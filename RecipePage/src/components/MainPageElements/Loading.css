@@ -1,0 +1,82 @@
+/*
+ * Loading state for the main pane.
+ *
+ * Deliberately the same box as .empty-page - same surface, border, radius and
+ * shadow, same em-relative sizing against the 22px root - so swapping between
+ * the two states does not move or resize the pane. Only the contents change.
+ *
+ * The contents mirror it too: a 3em mark, a 1.1em title and a 0.85em muted
+ * line, in the same slots and the same colours as the icon/title/hint of the
+ * empty state. The two panes are the same layout with different words, so
+ * anything that differs between them reads as a glitch rather than a design.
+ */
+.loading-page {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  padding: 1.2em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 2px #27303d0b;
+  text-align: center;
+}
+
+/*
+ * Drawn as a ring rather than an icon glyph: a border-based spinner rotates
+ * cleanly at any size, where a stroked SVG can shimmer as it spins.
+ *
+ * Sized to 3em to occupy the same slot as .empty-page__icon, and the track is
+ * the same #b9c0ca the empty icon uses. The moving quarter is #6b7280 - a
+ * darker step of the same neutral rather than the panel's accent blue, which
+ * in this theme means "selected" and would misread as a state, not progress.
+ */
+.loading-page__spinner {
+  width: 3em;
+  height: 3em;
+  box-sizing: border-box;
+  border: 0.12em solid #e1e4e9;
+  border-top-color: #6b7280;
+  border-radius: 50%;
+  animation: loading-page-spin 800ms linear infinite;
+}
+
+@keyframes loading-page-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*
+ * Matches the guard .recipe-card already uses. The ring still reads as a
+ * progress indicator when static, so the element stays rather than being
+ * hidden - it simply stops moving.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .loading-page__spinner {
+    animation: none;
+  }
+}
+
+/* Same tier as .empty-page__title, so the two states carry equal weight. */
+.loading-page__title {
+  margin: 0;
+  color: #34445a;
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+/* Same tier as .empty-page__hint. */
+.loading-page__hint {
+  margin: 0;
+  max-width: 34ch;
+  color: #6b7280;
+  font-size: 0.85em;
+  line-height: 1.45;
+}
+

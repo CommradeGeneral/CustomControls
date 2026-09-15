@@ -267,17 +267,16 @@ button {
 
 /* Label/value grid: labels share one column and values another, so the two
    rows line up with each other regardless of differing label widths. */
+/* Grey on the block, so the labels and the dates read as one muted line
+   rather than the values standing at full card contrast. */
 .recipe-card__dates {
   display: grid;
   grid-template-columns: auto auto;
   justify-content: start;
   column-gap: 10px;
   row-gap: 1px;
-  font-size: 0.9em;
-}
-
-.recipe-card__date-label {
-  color: #6b7280;
+  color: #9ca3af;
+  font-size: 0.75em;
 }
 
 /* Pinned to LTR in the markup so the digit groups keep their order; this
@@ -286,7 +285,9 @@ button {
   text-align: left;
 }
 
-.recipe-card--selected .recipe-card__date-label {
+/* The muted grey is unreadable against the selected card's blue, so the whole
+   block lifts to a light tint there - values included, not just the labels. */
+.recipe-card--selected .recipe-card__dates {
   color: #cfe0f8;
 }
 
@@ -321,19 +322,94 @@ button {
   box-shadow: 0 1px 2px #27303d14;
 }
 
-.pagination-page-select {
-  width: max-content;
+/*
+ * Page picker.
+ *
+ * Replaces a native <select>, whose popup Chromium draws as an OS widget that
+ * ignores font-size on <option>: the list rendered at the document's 22px root
+ * size no matter what CSS said, while the closed control stayed clamped to its
+ * 36px box. Every rule here therefore sizes ordinary elements, which the page
+ * does control.
+ */
+.page-select {
+  position: relative;
+  display: inline-flex;
+}
+
+.page-select__button {
+  display: inline-flex;
+  width: auto;
+  min-width: 64px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 8px;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.page-select__caret {
+  width: 0;
+  height: 0;
+  border-top: 4px solid currentColor;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+}
+
+/*
+ * Anchored above the button: the control sits at the bottom of the panel, so a
+ * list opening downward would be clipped by the iframe rather than the page.
+ */
+.page-select__popup {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 100%;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 4px 12px #27303d24;
+}
+
+/* Caps the popup at roughly eight rows; beyond that it scrolls. */
+.page-select__scroll {
+  max-height: 240px;
+}
+
+.page-select__list {
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  outline: none;
+}
+
+.page-select__option {
+  padding: 6px 12px;
+  border-radius: 3px;
+  color: #34445a;
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
   text-align: center;
-  white-space: nowrap;
+  cursor: pointer;
 }
 
-.recipe-pagination select {
-  padding: 0 2px;
+/* Follows both the pointer and the keyboard, so the two never disagree. */
+.page-select__option--active {
+  background: #eef4fd;
+  color: #2466c1;
 }
 
-.recipe-pagination option {
-  width: max-content;
-  white-space: nowrap;
+.page-select__option--selected {
+  font-weight: 700;
+  color: #2466c1;
+}
+
+.page-select__option--selected.page-select__option--active {
+  background: #dce9fb;
 }
 
 .pagination-control:hover,

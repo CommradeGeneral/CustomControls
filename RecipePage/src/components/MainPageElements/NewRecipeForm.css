@@ -1,0 +1,240 @@
+/*
+ * Create-recipe form for the main pane.
+ *
+ * Shares the pane geometry of .selected-item - a relative wrapper holding the
+ * corner close button, with the content in a bordered white box - so switching
+ * between the empty, loading, detail and form states does not move the surface.
+ *
+ * Controls borrow the recipe panel's input idiom (1px #e1e4e9, 4px radius,
+ * #34445a text on white) rather than inventing a second one, and everything is
+ * sized in em against the 22px root like the rest of this pane.
+ */
+.new-recipe {
+  position: relative;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.new-recipe__body {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 0.7em;
+  /* Extra inline-end padding clears the close button in either direction. */
+  padding: 1.2em;
+  padding-inline-end: 2.6em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 2px #27303d0b;
+  /*
+   * The body itself does not scroll: on step two the components table scrolls
+   * inside its own container, and a scrolling ancestor would break the sticky
+   * column header and let the pane scroll in two places at once. Step one's
+   * fields take their own scroll below instead.
+   */
+  overflow: hidden;
+}
+
+.new-recipe__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3em 0.6em;
+}
+
+.new-recipe__heading {
+  margin: 0;
+  color: #34445a;
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.new-recipe__step {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.8em;
+}
+
+/*
+ * Two columns where there is room, collapsing to one in a narrow pane. The
+ * description spans both, since a single line is not enough for it.
+ */
+/*
+ * Step one only. The fields block is what scrolls when the pane is short,
+ * leaving the heading and the action row pinned - the body itself cannot
+ * scroll without breaking step two's sticky table header.
+ */
+.new-recipe__fields {
+  display: grid;
+  min-height: 0;
+  gap: 0.7em;
+  grid-template-columns: repeat(auto-fit, minmax(11em, 1fr));
+  overflow-y: auto;
+}
+
+.new-recipe__field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25em;
+}
+
+.new-recipe__field--wide {
+  grid-column: 1 / -1;
+}
+
+.new-recipe__label {
+  color: #526176;
+  font-size: 0.8em;
+}
+
+/*
+ * Marks a field the form will refuse to advance without. Carried in the markup
+ * rather than baked into the label strings, so it is not translated and can be
+ * hidden from screen readers - the input's own aria-required states the same
+ * thing in a way assistive tech already understands.
+ */
+.new-recipe__required {
+  margin-inline-start: 0.15em;
+  color: #b4443a;
+}
+
+.new-recipe__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.4em 0.6em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  color: #34445a;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.85em;
+  line-height: 1.45;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.new-recipe__input:focus {
+  border-color: #5e91d2;
+  box-shadow: 0 0 0 2px #2466c11f;
+  outline: none;
+}
+
+.new-recipe__input::placeholder {
+  color: #b9c0ca;
+}
+
+.new-recipe__textarea {
+  min-height: 4em;
+  resize: vertical;
+}
+
+.new-recipe__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  color: #34445a;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+/*
+ * Reserves its line whether or not a message is showing, so submitting an
+ * incomplete form does not shift the buttons downward as the text appears.
+ */
+.new-recipe__error {
+  min-height: 1.45em;
+  margin: 0;
+  color: #b4443a;
+  font-size: 0.8em;
+  line-height: 1.45;
+}
+
+/*
+ * The same reserved line, reporting success rather than a fault. Green instead
+ * of the error red; the element is shared so the two can never both show and
+ * neither shifts the action row beneath.
+ */
+.new-recipe__error--ok {
+  color: #2e7d4f;
+}
+
+.new-recipe__actions {
+  display: flex;
+  margin-top: auto;
+  justify-content: flex-end;
+  gap: 0.5em;
+}
+
+.new-recipe__button {
+  box-sizing: border-box;
+  padding: 0.4em 1em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  color: #34445a;
+  background: #fff;
+  box-shadow: 0 1px 2px #27303d14;
+  font-family: inherit;
+  font-size: 0.85em;
+  line-height: 1.45;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+}
+
+.new-recipe__button:hover,
+.new-recipe__button:focus-visible {
+  border-color: #5e91d2;
+  color: #2466c1;
+  background: #f7faff;
+  outline: none;
+}
+
+/* The accent blue the selected card uses, so the primary action reads as the
+   same family of emphasis. */
+.new-recipe__button--primary {
+  border-color: #2466c1;
+  color: #fff;
+  background: #2e6dcc;
+}
+
+.new-recipe__button--primary:hover,
+.new-recipe__button--primary:focus-visible {
+  border-color: #2466c1;
+  color: #fff;
+  background: #2864bd;
+}
+
+/*
+ * Dimmed while the step cannot be submitted. On step one the button is only
+ * marked, not disabled - it still submits and answers with the error line. On
+ * step two an incomplete component row disables it for real, and the message
+ * line above says which, so the dead control is never unexplained.
+ */
+.new-recipe__button--primary[aria-disabled='true'] {
+  opacity: 0.55;
+}
+
+.new-recipe__button--primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.new-recipe__button--primary:disabled:hover,
+.new-recipe__button--primary:disabled:focus-visible {
+  border-color: #2466c1;
+  color: #fff;
+  background: #2e6dcc;
+}
+
+/* Matches the guard .recipe-card and the spinner already use. */
+@media (prefers-reduced-motion: reduce) {
+  .new-recipe__input,
+  .new-recipe__button {
+    transition: none;
+  }
+}

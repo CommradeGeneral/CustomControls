@@ -1,0 +1,169 @@
+/*
+ * Searchable select.
+ *
+ * Shares the popup treatment of .page-select - white on a 1px #e1e4e9 border,
+ * 4px radius, the panel's #eef4fd/#2466c1 highlight - so the two dropdowns in
+ * this control read as one component. Sized in em against the pane's own type
+ * rather than the 22px root, so it matches the table row it sits in.
+ */
+.sselect {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.sselect__button {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3em;
+  padding: 0.35em 0.5em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  color: #34445a;
+  background: #fff;
+  font-family: inherit;
+  font-size: 1em;
+  line-height: 1.45;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.sselect__button:hover {
+  border-color: #9bb8dc;
+}
+
+.sselect__button:focus-visible {
+  border-color: #5e91d2;
+  box-shadow: 0 0 0 2px #2466c11f;
+  outline: none;
+}
+
+/* An unchosen value reads as placeholder text, not as data. */
+.sselect__button--unset {
+  color: #b9c0ca;
+}
+
+.sselect__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sselect__caret {
+  flex: 0 0 auto;
+  color: #6b7280;
+}
+
+/*
+ * Positioned fixed, not absolute: the combobox sits inside the components
+ * table, whose container must keep overflow:auto to scroll sideways, and an
+ * absolutely-positioned popup is clipped by that container. Fixed takes the
+ * popup out of the clipping chain entirely.
+ *
+ * The cost is that fixed coordinates are viewport coordinates, so top/left and
+ * width are measured from the button and set inline by the component - there is
+ * nothing for CSS to anchor to here. That also means no inset-inline-start:
+ * the component computes a concrete left for both reading directions.
+ */
+.sselect__popup {
+  position: fixed;
+  z-index: 60;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 4px 12px #27303d24;
+}
+
+.sselect__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0.3em;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.sselect__search-icon {
+  position: absolute;
+  inset-inline-start: 0.6em;
+  color: #b9c0ca;
+  pointer-events: none;
+}
+
+.sselect__search-input {
+  width: 100%;
+  box-sizing: border-box;
+  /* Inline padding leaves room for the icon on the leading side, in either
+     reading direction. */
+  padding: 0.3em 0.5em;
+  padding-inline-start: 1.9em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  color: #34445a;
+  background: #fff;
+  font-family: inherit;
+  font-size: 1em;
+  line-height: 1.45;
+}
+
+.sselect__search-input:focus {
+  border-color: #5e91d2;
+  box-shadow: 0 0 0 2px #2466c11f;
+  outline: none;
+}
+
+.sselect__search-input::placeholder {
+  color: #b9c0ca;
+}
+
+/* Roughly seven rows before it scrolls. */
+.sselect__scroll {
+  max-height: 11em;
+}
+
+.sselect__list {
+  margin: 0;
+  padding: 0.25em;
+  list-style: none;
+}
+
+.sselect__option {
+  padding: 0.35em 0.6em;
+  border-radius: 3px;
+  color: #34445a;
+  line-height: 1.3;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Follows both the pointer and the keyboard, so the two never disagree. */
+.sselect__option--active {
+  background: #eef4fd;
+  color: #2466c1;
+}
+
+.sselect__option--selected {
+  font-weight: 700;
+  color: #2466c1;
+}
+
+.sselect__option--selected.sselect__option--active {
+  background: #dce9fb;
+}
+
+.sselect__empty {
+  padding: 0.6em;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* Matches the guard .recipe-card and the spinner already use. */
+@media (prefers-reduced-motion: reduce) {
+  .sselect__button {
+    transition: none;
+  }
+}
