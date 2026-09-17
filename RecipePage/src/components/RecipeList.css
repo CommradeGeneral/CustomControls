@@ -46,17 +46,79 @@ button {
   cursor: pointer;
 }
 
+/*
+ * The panel's primary action, and the only filled control in the list, so it
+ * carries a little more weight than the flat fill it had: a gradient for depth,
+ * a shadow tinted with its own blue rather than grey, and states for hover,
+ * focus and press.
+ *
+ * The lift on hover is 1px and the press returns it - enough to feel like a
+ * button without moving the heading it sits beside.
+ */
 .new-recipe-button {
   display: inline-flex;
+  position: relative;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   border: 0;
-  border-radius: 4px;
-  padding: 5px 8px;
+  border-radius: 5px;
+  padding: 6px 11px;
   color: white;
-  background: #2466c1;
-  box-shadow: 0 1px 2px #103d7b4d;
- /* font-size: 11px; */
+  background-image: linear-gradient(180deg, #3b7fd9 0%, #2466c1 100%);
+  box-shadow: 0 1px 2px #103d7b33, 0 2px 6px #103d7b26;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: box-shadow 140ms ease, transform 140ms ease, background-image 140ms ease;
+}
+
+.new-recipe-button:hover {
+  background-image: linear-gradient(180deg, #4a8ce4 0%, #2a70d0 100%);
+  box-shadow: 0 2px 4px #103d7b3d, 0 4px 12px #103d7b33;
+  transform: translateY(-1px);
+}
+
+/* The ring sits outside the button rather than replacing its shadow, so the
+   focused state keeps the same depth as the resting one. */
+.new-recipe-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2466c166, 0 2px 6px #103d7b33;
+}
+
+/* Settles back to the surface, so the press reads as the button being pushed
+   rather than as it disappearing. */
+.new-recipe-button:active {
+  background-image: linear-gradient(180deg, #2a70d0 0%, #1f57a6 100%);
+  box-shadow: 0 1px 1px #103d7b40;
+  transform: translateY(0);
+}
+
+/* The plus leads the label in either direction, and grows very slightly on
+   hover so the gesture is felt at the icon as well as the whole control. */
+.new-recipe-button svg {
+  transition: transform 140ms ease;
+}
+
+.new-recipe-button:hover svg {
+  transform: scale(1.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .new-recipe-button,
+  .new-recipe-button svg {
+    transition: none;
+  }
+
+  .new-recipe-button:hover,
+  .new-recipe-button:active {
+    transform: none;
+  }
+
+  .new-recipe-button:hover svg {
+    transform: none;
+  }
 }
 
 .recipe-tools {

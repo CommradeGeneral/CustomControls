@@ -156,6 +156,21 @@
   width: 6.5em;
 }
 
+/* Narrow: a unit is "kg" or "L", and it is read-only text rather than a
+   control, so it needs no room to be operated. */
+.components__col-unit {
+  width: 4em;
+  color: #526176;
+  white-space: nowrap;
+  text-align: start;
+}
+
+/* Placeholder for a cell whose value is not known yet - here, the unit before
+   a material has been chosen. Muted so it reads as absence, not as content. */
+.components__unset {
+  color: #b9c0ca;
+}
+
 .components__empty {
   padding: 1.5em 0.6em;
   color: #6b7280;

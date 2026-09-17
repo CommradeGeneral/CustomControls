@@ -1,0 +1,105 @@
+/*
+ * Success state for the main pane.
+ *
+ * Deliberately the same box as .empty-page - same card surface, same em-based
+ * sizing against the 22px root - so the pane does not appear to change shape
+ * when the form is replaced by this. Only the icon carries the success colour;
+ * the green is .new-recipe__error--ok's, so the two ways the control reports a
+ * success agree rather than each inventing a shade.
+ */
+.recipe-created {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  padding: 1.2em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 2px #27303d0b;
+  text-align: center;
+}
+
+/*
+ * Driven by font-size rather than the component's size attribute, which lucide
+ * renders as fixed px: the icon is passed size="1em" so this rule scales it.
+ *
+ * The badge settles first and the tick is drawn into it, so the two read as
+ * one gesture rather than racing. Both are one-shot - forwards holds the end
+ * state, since the pane can outlive the animation by the whole timeout.
+ */
+.recipe-created__icon {
+  color: #2e7d4f;
+  font-size: 3em;
+  animation: recipe-created-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/*
+ * CheckCircle2 is two paths - the surrounding arc, then the tick - so only the
+ * second is stroked on. :last-child rather than `path`, because dashing both
+ * would also break the arc into a permanent gap: its length is roughly 60 units
+ * against this 24-unit dash, so it would never close.
+ *
+ * The dash length is in the icon's 24-unit viewBox and overshoots the tick's
+ * real length deliberately: too long merely starts the reveal marginally
+ * early, where too short would leave a permanent gap.
+ */
+.recipe-created__icon path:last-child {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: recipe-created-draw 260ms ease-out 200ms forwards;
+}
+
+@keyframes recipe-created-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes recipe-created-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
+ * Matches the guard .loading-page__spinner uses. The tick must be reset to
+ * fully drawn rather than only having its animation cancelled: the path starts
+ * at a full dash offset, so stopping the animation alone would leave an icon
+ * with no tick in it at all.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .recipe-created__icon {
+    animation: none;
+  }
+
+  .recipe-created__icon path:last-child {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+}
+
+.recipe-created__title {
+  margin: 0;
+  color: #34445a;
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.recipe-created__hint {
+  margin: 0;
+  max-width: 34ch;
+  color: #6b7280;
+  font-size: 0.85em;
+  line-height: 1.45;
+}

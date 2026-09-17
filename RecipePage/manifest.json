@@ -11,12 +11,13 @@
     },
     "metadata": {
       "author": "Siemens",
-      "keywords": ["RecipePage"]
+      "keywords": [
+        "RecipePage"
+      ]
     },
     "contracts": {
       "api": {
         "methods": {
-          
           "Print": {
             "parameters": {
               "data": {
@@ -31,7 +32,23 @@
                 "type": "string"
               }
             },
-            "description": "Write a diagnostic message to the control's console and status line."
+            "description": "Supply the recipe rows the cards are built from, as a JSON array of recipe_header rows. A numbered-key object and a real array are accepted too, since marshalling an array across the boundary may deliver either. A malformed payload is refused and leaves the current cards alone. Note this only delivers the rows: while the showTemplate property is on, the built-in demo rows keep rendering and these are held."
+          },
+          "CreateRecipePage": {
+            "parameters": {
+              "data": {
+                "type": "string"
+              }
+            },
+            "description": "Show the detail page for one recipe, as a JSON object carrying the recipe_header row and a components array. Each component needs the material's code, name, unit and target quantity - the shape a join of recipe_components to recipe_material returns. Accepts the same payload spellings as CreateCards. Call with an empty payload to return the pane to its empty state."
+          },
+          "LoadAvailableMaterials": {
+            "parameters": {
+              "data": {
+                "type": "string"
+              }
+            },
+            "description": "Supply the materials a recipe component can be chosen from, as a JSON array of recipe_material rows. Each row needs at least a code and a name; the unit column is shown beside the quantity when present. Accepts the same payload spellings as CreateCards and refuses a malformed one. Until this is called, the form offers a small built-in material list."
           },
           "NewRecipeMessage": {
             "parameters": {
@@ -41,27 +58,26 @@
               "Timeout": {
                 "type": "number"
               }
-            }
+            },
+            "description": "Report the outcome of a create attempt on the new-recipe form: 0 = the recipe was created, which replaces the form with a success page, 1 = it could not be written to the database, which shows an error under the form. Any other number clears the message. Timeout is in milliseconds and zero or less leaves the result on screen until the operator closes the form."
           },
-          "ClearSidePage": {
+          "DeleteRecipeMessage": {
             "parameters": {
-
-            }
-          }
-        },
-        "events": {
-          "onPressingIcon": {
-            "arguments": {
-              "itemNumber": {
+              "MessageNumber": {
+                "type": "number"
+              },
+              "Timeout": {
                 "type": "number"
               }
             },
-            "description": "Fires when a navigation item is pressed and returns its zero-based item number."
+            "description": "Report the outcome of a delete: 0 = the recipe was deleted, which closes the detail page, 1 = it could not be deleted, which shows an error on the page and restores the Delete button. Any other number clears the pending state without a message. Timeout is in milliseconds and applies to the error only; zero or less leaves it until the operator closes the page."
           },
-          "onLoginOut": {
-            "arguments": {},
-            "description": "Fires when the sign-out button is pressed."
-          },
+          "ClearSidePage": {
+            "parameters": {},
+            "description": "Return the main pane to its empty state, dropping whichever of the recipe detail view or the new-recipe form is showing and discarding an unsaved draft. Also clears the card selection, so onCardSelect fires with an empty string if a row was selected."
+          }
+        },
+        "events": {
           "onCardSelect": {
             "arguments": {
               "recipe": {
@@ -78,35 +94,59 @@
             },
             "description": "Fires when the operator submits the new-recipe form, carrying the draft as a JSON string. The control does not persist anything itself."
           },
-          "onLanguageChange": {
+          "onRecipeDelete": {
             "arguments": {
-              "lang": {
+              "id": {
+                "type": "number"
+              }
+            },
+            "description": "Fires when the operator confirms deleting the recipe shown on the detail page, carrying its id. The control deletes nothing itself and waits: the page holds a pending state until DeleteRecipeMessage reports what happened. Note recipe_components has no delete cascade, so the component rows must be removed before the header."
+          },
+          "onRecipeUpdate": {
+            "arguments": {
+              "recipe": {
                 "type": "string"
               }
             },
-            "description": "Fires when the operator selects a language."
+            "description": "Fires when the operator saves an edited recipe, carrying the draft as a JSON string with the recipe's id. Only the description and the component rows can change: the code and name identify the recipe and are shown read-only, so an update never has to reconcile a renamed row. The control persists nothing and waits for NewRecipeMessage to report the outcome, the same as a create."
+          },
+          "onNewRecipeButton": {
+            "arguments": {},
+            "description": "Fires when the operator presses the New Recipe button. The control opens the form itself, so nothing has to be sent back; this exists so the container can react - loading the material catalogue for the component step, for instance."
+          },
+          "onSidePageChange": {
+            "arguments": {
+              "page": {
+                "type": "string"
+              }
+            },
+            "description": "Fires when the main pane switches to a different state, carrying its name: 'empty' when nothing is selected, 'loading' while the detail of a selected recipe is awaited, 'detail' once CreateRecipePage has supplied it, 'create' while the new-recipe form is open, 'created' on that form's success page, and 'saved' on the one shown after an inline edit. Fires once per change, not on every render, and reports what the operator can see rather than why it changed."
           },
           "onRecipeItemsPerPageChange": {
             "arguments": {
               "value": {
                 "type": "number"
               }
-            }
+            },
+            "description": "Fires when the operator changes how many recipe cards a page holds, carrying the new count. The control does not apply the value itself: set the RecipeItemsPerPage property in response, so the container stays the owner of it."
           }
         },
         "properties": {
           "Language": {
             "type": "string",
-            "default": "en"
+            "default": "en",
+            "description": "Interface language: 'en' for English or 'ar' for Arabic, which also switches the layout to right-to-left. Any other value is treated as English. Read-only from the control's side: it has no language picker, so the value only ever arrives from the container."
           },
           "RecipeItemsPerPage": {
             "type": "number",
             "default": 5,
-            "minimum": 1
+            "minimum": 1,
+            "description": "How many recipe cards one page of the list holds. Values below 1 are ignored. The control reports an operator's change through onRecipeItemsPerPageChange rather than applying it directly, so this property stays the single source of the value."
           },
-          "showTemplate" : {
-            "type" : "boolean",
-            "default" :true
+          "showTemplate": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the built-in demo recipes are shown while the container has supplied none. True renders the sample cards, which is useful during engineering; false leaves the list empty until CreateCards delivers real rows. Once rows have been supplied they are shown regardless of this flag."
           }
         }
       }

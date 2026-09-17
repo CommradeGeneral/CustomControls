@@ -134,13 +134,62 @@
   resize: vertical;
 }
 
-.new-recipe__checkbox {
+/*
+ * The status pill, matching .recipe-detail__status on the detail page so the
+ * flag looks alike wherever it is set - the same green and red the card list
+ * uses for the same two states.
+ *
+ * Dashed while it is a control, solid on hover, with the focus ring drawn here
+ * because the checkbox inside is visually hidden.
+ *
+ * justify-self keeps it from stretching across its grid column: the fields
+ * around it are full-width inputs, and without this the pill would be too.
+ */
+.new-recipe__status {
   display: inline-flex;
   align-items: center;
-  gap: 0.4em;
-  color: #34445a;
-  font-size: 0.85em;
+  justify-self: start;
+  border: 1px dashed #21834a80;
+  border-radius: 3px;
+  padding: 2px 6px;
+  color: #21834a;
+  background: #dff5e7;
+  font-size: 0.75em;
+  line-height: 1.4;
   cursor: pointer;
+  user-select: none;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.new-recipe__status--inactive {
+  border-color: #c73b3b80;
+  color: #c73b3b;
+  background: #ffe1e1;
+}
+
+.new-recipe__status:hover {
+  border-style: solid;
+}
+
+/*
+ * Visually hidden rather than display: none - the checkbox still has to be
+ * focusable and readable by assistive tech, which a removed element is not.
+ */
+.new-recipe__status-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.new-recipe__status:has(.new-recipe__status-input:focus-visible) {
+  border-style: solid;
+  box-shadow: 0 0 0 2px #2466c11f;
 }
 
 /*
@@ -234,6 +283,7 @@
 /* Matches the guard .recipe-card and the spinner already use. */
 @media (prefers-reduced-motion: reduce) {
   .new-recipe__input,
+  .new-recipe__status,
   .new-recipe__button {
     transition: none;
   }

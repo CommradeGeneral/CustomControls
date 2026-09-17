@@ -1,0 +1,514 @@
+/*
+ * Detail page for one recipe.
+ *
+ * Surface and palette are taken from the panes it sits beside - the same #fff
+ * card on a 1px #e1e4e9 border with a 4px radius - so the main pane does not
+ * appear to change material when a recipe is opened.
+ */
+.recipe-detail {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 2px #27303d0b;
+}
+
+/* The pane scrolls as one, rather than the table scrolling inside a fixed
+   frame: the summary below it is part of the same reading order. */
+.recipe-detail__scroll {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 1.2em;
+  /* Clears the close button the parent places in the corner. */
+  padding-inline-end: 2.6em;
+}
+
+.recipe-detail__header {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-bottom: 0.9em;
+}
+
+.recipe-detail__title {
+  overflow: hidden;
+  margin: 0;
+  color: #34445a;
+  font-size: 1.25em;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Same green and red the card list already uses for the same two states. */
+.recipe-detail__status {
+  flex-shrink: 0;
+  border-radius: 3px;
+  padding: 2px 6px;
+  color: #21834a;
+  background: #dff5e7;
+  font-size: 0.75em;
+  line-height: 1.4;
+}
+
+.recipe-detail__status--inactive {
+  color: #c73b3b;
+  background: #ffe1e1;
+}
+
+/*
+ * Header facts as a wrapping row. Three items fit side by side at the pane's
+ * usual width and stack cleanly when it is narrower, without a media query.
+ */
+.recipe-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 2em;
+  margin: 0 0 1.2em;
+  padding: 0.7em 0.9em;
+  border: 1px solid #eef0f3;
+  border-radius: 4px;
+  background: #fafbfc;
+}
+
+.recipe-detail__meta-item dt {
+  margin: 0 0 1px;
+  color: #6b7280;
+  font-size: 0.7em;
+}
+
+.recipe-detail__meta-item dd {
+  margin: 0;
+  color: #34445a;
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Pushed to the row's end edge by an auto margin on the inline-start side, so
+ * it lands on the right in English and the left in Arabic without a rule for
+ * each direction.
+ */
+.recipe-detail__actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.4em;
+  margin-inline-start: auto;
+}
+
+.recipe-detail__button {
+  display: inline-flex;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.35em 0.8em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  color: #34445a;
+  background: #fff;
+  box-shadow: 0 1px 2px #27303d14;
+  font-family: inherit;
+  font-size: 0.75em;
+  line-height: 1.45;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+}
+
+.recipe-detail__button:hover,
+.recipe-detail__button:focus-visible {
+  border-color: #b9c0ca;
+  background: #f7f8fa;
+  outline: none;
+}
+
+/*
+ * Red as an outline rather than a filled button: the destructive action should
+ * read as serious without competing with the page for attention, and the
+ * confirm step is what actually guards it.
+ */
+.recipe-detail__button--danger {
+  border-color: #f0c9c9;
+  color: #b4443a;
+}
+
+.recipe-detail__button--danger:hover,
+.recipe-detail__button--danger:focus-visible {
+  border-color: #c73b3b;
+  color: #fff;
+  background: #c73b3b;
+}
+
+/* The accent blue the create form's primary action uses, so Save reads as the
+   same family of emphasis wherever it appears. */
+.recipe-detail__button--primary {
+  border-color: #2466c1;
+  color: #fff;
+  background: #2e6dcc;
+}
+
+.recipe-detail__button--primary:hover,
+.recipe-detail__button--primary:focus-visible {
+  border-color: #2466c1;
+  color: #fff;
+  background: #2864bd;
+}
+
+.recipe-detail__button--primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.recipe-detail__button--primary:disabled:hover {
+  border-color: #2466c1;
+  background: #2e6dcc;
+}
+
+/*
+ * The pill while it is editable. It keeps the colours and shape of the
+ * read-only one so the state stays recognisable, and gains the affordances of
+ * a control: a pointer, a dashed outline saying it can be changed, and a hover
+ * and focus state.
+ */
+.recipe-detail__status--editable {
+  display: inline-flex;
+  align-items: center;
+  border: 1px dashed #21834a80;
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.recipe-detail__status--editable.recipe-detail__status--inactive {
+  border-color: #c73b3b80;
+}
+
+.recipe-detail__status--editable:hover {
+  border-style: solid;
+}
+
+/*
+ * Visually hidden rather than display: none - the checkbox still has to be
+ * focusable and readable by assistive tech, which a removed element is not.
+ * Its focus ring is drawn on the pill around it instead.
+ */
+.recipe-detail__status-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.recipe-detail__status--editable:has(.recipe-detail__status-input:focus-visible) {
+  border-style: solid;
+  box-shadow: 0 0 0 2px #2466c11f;
+}
+
+/* Mid-save the flag cannot be changed, so it stops offering to be. */
+.recipe-detail__status--editable:has(.recipe-detail__status-input:disabled) {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recipe-detail__status--editable {
+    transition: none;
+  }
+}
+
+/* Sized and coloured like the read-only description it replaces, so the panel
+   does not change shape when editing starts. */
+.recipe-detail__description-input {
+  width: 100%;
+  min-height: 4em;
+  box-sizing: border-box;
+  padding: 0.7em 0.9em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  background: #fff;
+  color: #34445a;
+  font-family: inherit;
+  font-size: 0.8em;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.recipe-detail__description-input:focus {
+  border-color: #5e91d2;
+  box-shadow: 0 0 0 2px #2466c11f;
+  outline: none;
+}
+
+.recipe-detail__pending {
+  flex-shrink: 0;
+  color: #6b7280;
+  font-size: 0.75em;
+  white-space: nowrap;
+}
+
+/*
+ * Pinned below the scrolling body, so Save stays reachable however far down
+ * the operator has scrolled. The message sits beside the buttons rather than
+ * above them, which keeps the row one line tall whether or not it is showing.
+ */
+.recipe-detail__footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.7em 1.2em;
+  border-top: 1px solid #eef0f3;
+  background: #fafbfc;
+}
+
+.recipe-detail__footer-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5em;
+}
+
+/*
+ * Reserves its line whether or not a message is showing, the same way the
+ * create form's error line does, so the buttons never shift as it appears.
+ */
+.recipe-detail__error {
+  min-height: 1.45em;
+  margin: 0;
+  min-width: 0;
+  color: #b4443a;
+  font-size: 0.78em;
+  line-height: 1.45;
+}
+
+/*
+ * The delete failure appears in the body rather than the footer, with nothing
+ * beside it to read against, so it carries its own surface.
+ */
+.recipe-detail__error--boxed {
+  margin-bottom: 0.9em;
+  padding: 0.5em 0.7em;
+  border: 1px solid #f0c9c9;
+  border-radius: 4px;
+  background: #fdf3f3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recipe-detail__button {
+    transition: none;
+  }
+}
+
+.recipe-detail__section {
+  margin-bottom: 1.2em;
+}
+
+/* Same tier as .components__heading, so the two panes title their sections
+   alike rather than each inventing a weight. */
+.recipe-detail__section-title {
+  margin: 0 0 0.5em;
+  color: #34445a;
+  font-size: 0.95em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* The bordered white frame .components__scroll gives the create form's table,
+   so the same rows read as the same kind of thing in both panes. */
+.recipe-detail__table-frame {
+  overflow: auto;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.recipe-detail__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8em;
+}
+
+.recipe-detail__table th {
+  padding: 0.5em 0.6em;
+  border-bottom: 1px solid #e1e4e9;
+  color: #526176;
+  background: #f8f9fa;
+  font-weight: 700;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.recipe-detail__table td {
+  padding: 0.35em 0.5em;
+  border-bottom: 1px solid #eef0f3;
+  color: #34445a;
+  vertical-align: middle;
+}
+
+/* The frame already closes the table, so the last row needs no rule of its
+   own - matching .components__table. */
+.recipe-detail__table tr:last-child td {
+  border-bottom: none;
+}
+
+/*
+ * Every cell aligns to the row's own start edge - left in English, right in
+ * Arabic. Stated rather than left to inherit, because an ASCII value inside a
+ * cell has to be pinned to LTR for its glyphs to read correctly, and doing
+ * that with dir on the element would drag its alignment to the left as well,
+ * out of line with the column header above it.
+ */
+.recipe-detail__table td,
+.recipe-detail__table th {
+  text-align: start;
+}
+
+/*
+ * Widths are declared on both th and td, the way the create form's table does
+ * it: the bare `th` rule above sets its own alignment, and a single-class rule
+ * on one of the pair leaves the header disagreeing with the cells beneath it.
+ */
+.recipe-detail__table th.recipe-detail__col-index,
+.recipe-detail__table td.recipe-detail__col-index {
+  width: 2.5em;
+  color: #6b7280;
+  text-align: start;
+}
+
+/* Narrow: a target quantity is a few digits, not a sentence. Tabular figures
+   so the column lines up on its digits.
+   Alignment is restated because these class rules outrank the bare td rule
+   above, and leaving it out let the values drift to the middle of the column. */
+.recipe-detail__table th.recipe-detail__col-qty,
+.recipe-detail__table td.recipe-detail__col-qty {
+  width: 6.5em;
+  font-variant-numeric: tabular-nums;
+  text-align: start;
+}
+
+/* Narrow: a unit is "kg" or "L". */
+.recipe-detail__table th.recipe-detail__col-unit,
+.recipe-detail__table td.recipe-detail__col-unit {
+  width: 4em;
+  color: #526176;
+  white-space: nowrap;
+  text-align: start;
+}
+
+/* Matches .recipe-detail__col-code exactly - the two are a name/code pair, and
+   reading them as one unit depends on their sharing a width, the same reason
+   .components__col-material is paired with its code column. */
+.recipe-detail__table th.recipe-detail__col-material,
+.recipe-detail__table td.recipe-detail__col-material {
+  width: 12em;
+  text-align: start;
+}
+
+/*
+ * Its own column, mirroring .components__col-code in the create form - same
+ * width, colour and tabular figures, so a code reads the same in both panes.
+ *
+ * The cell stays in the row's direction so it lines up with its header; only
+ * the code's own glyphs are pinned LTR, by the bdi in the markup. Setting dir
+ * on the cell instead would drag it to the left edge of an RTL row.
+ */
+.recipe-detail__table th.recipe-detail__col-code,
+.recipe-detail__table td.recipe-detail__col-code {
+  width: 12em;
+  color: #526176;
+  font-variant-numeric: tabular-nums;
+  text-align: start;
+}
+
+/*
+ * Isolates a run of ASCII - a code, a date, a number - so the bidi algorithm
+ * cannot reorder it against the Arabic around it.
+ *
+ * Left inline, not inline-block: a block box inside a fixed-width cell is laid
+ * out as a box in its own right, which is what pushed these values into the
+ * middle of their columns instead of leaving them at the start edge.
+ */
+.recipe-detail__ltr {
+  display: inline;
+}
+
+.recipe-detail__empty {
+  padding: 1.2em 0.6em;
+  color: #6b7280;
+  text-align: center;
+}
+
+/*
+ * Summary and description side by side, stacking when the pane is too narrow
+ * for both. The basis is what decides that: below roughly 2 x 16em they wrap.
+ */
+.recipe-detail__panels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+}
+
+.recipe-detail__section--panel {
+  flex: 1 1 16em;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.recipe-detail__summary {
+  margin: 0;
+  padding: 0.7em 0.9em;
+  border: 1px solid #eef0f3;
+  border-radius: 4px;
+  background: #fafbfc;
+}
+
+.recipe-detail__summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.25em 0;
+  font-size: 0.8em;
+}
+
+.recipe-detail__summary-row dt {
+  color: #6b7280;
+}
+
+.recipe-detail__summary-row dd {
+  margin: 0;
+  color: #34445a;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.recipe-detail__description {
+  margin: 0;
+  padding: 0.7em 0.9em;
+  border: 1px solid #eef0f3;
+  border-radius: 4px;
+  background: #fafbfc;
+  color: #526176;
+  font-size: 0.8em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* Lighter and italic, so the standing-in text is not read as the recipe's own
+   description. Matches the muted grey the empty states elsewhere use. */
+.recipe-detail__description--empty {
+  color: #9ca3af;
+  font-style: italic;
+}

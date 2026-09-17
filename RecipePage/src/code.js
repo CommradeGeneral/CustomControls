@@ -12,20 +12,28 @@ window.RecipeBridge = {
   // waiting" from "tried and failed".
   settled: false,
   language: 'en',
-  selectedItemNumber: 0,
   recipeItemsPerPage: 5,
   showTemplate: true,
   // Rows supplied by the container through CreateCards. Null means "never
   // supplied", which is distinct from an empty array: empty is a real result
   // that renders no cards, null lets the template stand in.
   recipes: null,
+  // Material catalogue supplied through LoadAvailableMaterials. Null means
+  // "never supplied", which is distinct from an empty array: empty is a real
+  // result that offers nothing to pick, null lets the built-in list stand in.
+  materials: null,
+  // The recipe the detail page is showing, supplied through CreateRecipePage.
+  // Null means no page is open, which is distinct from an empty object.
+  recipePage: null,
   pending: [],
   onLanguage: null,
-  onSelectedItemNumber: null,
   onRecipeItemsPerPage: null,
   onShowTemplate: null,
   onRecipes: null,
+  onMaterials: null,
+  onRecipePage: null,
   onNewRecipeMessage: null,
+  onDeleteRecipeMessage: null,
   onClearSidePage: null,
   // Filled in by React; called when connected/settled changes so the gate can
   // re-render. `connected` is a plain field and is not observable on its own.
@@ -64,22 +72,29 @@ function toRowArray(value) {
 }
 
 /**
- * Accept rows for the recipe cards.
+ * Accept a row list from the container and hand it to React.
  *
- * Lives on the bridge rather than only inside the contract object, because the
- * contract is registered by WebCC.start and that never runs standalone. Routing
- * both the container's call and a console injection through here means testing
- * in a plain browser exercises the same validation the container hits.
+ * Shared by every method that takes one, because they all face the same three
+ * spellings: a real array, a JSON-encoded string of one, and a numbered-key
+ * object, which is what marshalling an array across the boundary usually
+ * produces. A JSON string may itself decode to either of the other two.
+ *
+ * `label` names the method in every log line, `field` is the bridge property
+ * the rows are stored on, and `kind` the bridgeDispatch channel React listens
+ * on. Anything malformed is refused here rather than forwarded, so a bad
+ * payload leaves the current data alone instead of blanking it.
+ *
+ * Returns whether the payload was accepted.
  */
-function bridgeCreateCards(data) {
+function bridgeAcceptRows(label, field, kind, data) {
   var rows = data;
-  console.log("Created cards:", data)
+  // console.log('[RecipePage] ' + label + ' received:', data);
   if (typeof rows === 'string') {
     try {
       rows = JSON.parse(rows);
     } catch (e) {
-      console.warn('[RecipePage] CreateCards: payload is not valid JSON', e);
-      setStatus('CreateCards: invalid JSON');
+      console.warn('[RecipePage] ' + label + ': payload is not valid JSON', e);
+      setStatus(label + ': invalid JSON');
       return false;
     }
   }
@@ -100,7 +115,7 @@ function bridgeCreateCards(data) {
       keyNote = ' keys=[' + seen.slice(0, 12).join(', ') +
         (seen.length > 12 ? ', ...+' + (seen.length - 12) : '') + ']';
     }
-    console.warn('[RecipePage] CreateCards refused a payload.' +
+    console.warn('[RecipePage] ' + label + ' refused a payload.' +
       ' type=' + typeof candidate + ' tag=' + described + keyNote);
     console.warn('[RecipePage] raw payload follows:', candidate);
     try {
@@ -108,12 +123,84 @@ function bridgeCreateCards(data) {
     } catch (e) {
       console.warn('[RecipePage] payload is not JSON-serializable:', e);
     }
-    setStatus('CreateCards refused: ' + typeof candidate + keyNote);
+    setStatus(label + ' refused: ' + typeof candidate + keyNote);
     return false;
   }
-  window.RecipeBridge.recipes = rows;
-  bridgeDispatch('Recipes', rows);
-  setStatus('CreateCards: ' + rows.length + ' row(s)');
+  window.RecipeBridge[field] = rows;
+  bridgeDispatch(kind, rows);
+  setStatus(label + ': ' + rows.length + ' row(s)');
+  return true;
+}
+
+/**
+ * Accept rows for the recipe cards.
+ *
+ * Lives on the bridge rather than only inside the contract object, because the
+ * contract is registered by WebCC.start and that never runs standalone. Routing
+ * both the container's call and a console injection through here means testing
+ * in a plain browser exercises the same validation the container hits.
+ */
+function bridgeCreateCards(data) {
+  return bridgeAcceptRows('CreateCards', 'recipes', 'Recipes', data);
+}
+
+/**
+ * Accept the material catalogue the component rows are chosen from.
+ *
+ * Same contract and the same standalone reasoning as bridgeCreateCards; the
+ * rows are the recipe_material table, so each carries at least a code and a
+ * name, and whatever else the query selected is passed through untouched.
+ */
+function bridgeLoadAvailableMaterials(data) {
+  return bridgeAcceptRows('LoadAvailableMaterials', 'materials', 'Materials', data);
+}
+
+/**
+ * Accept the recipe the detail page shows.
+ *
+ * One object rather than a row list, so this does not use bridgeAcceptRows.
+ * The components inside it still go through toRowArray, because a nested array
+ * faces the same marshalling that turns a list into {"0": row, "1": row, ...}.
+ *
+ * An empty payload - '', null, or an object with no code - closes the page
+ * rather than opening a blank one, which is how the container withdraws it.
+ */
+function bridgeCreateRecipePage(data) {
+  var payload = data;
+  // console.log('[RecipePage] CreateRecipePage received:', data);
+
+  if (payload === '' || payload === null || payload === undefined) {
+    window.RecipeBridge.recipePage = null;
+    bridgeDispatch('RecipePage', null);
+    setStatus('CreateRecipePage: closed');
+    return true;
+  }
+
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload);
+    } catch (e) {
+      console.warn('[RecipePage] CreateRecipePage: payload is not valid JSON', e);
+      setStatus('CreateRecipePage: invalid JSON');
+      return false;
+    }
+  }
+
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    console.warn('[RecipePage] CreateRecipePage refused a payload.' +
+      ' type=' + typeof payload + ' tag=' + Object.prototype.toString.call(payload));
+    setStatus('CreateRecipePage refused: ' + typeof payload);
+    return false;
+  }
+
+  // Normalized here rather than in React, so the component can assume an
+  // array and a missing one is not mistaken for a recipe with no components.
+  var components = toRowArray(payload.components);
+  payload.components = components === null ? [] : components;
+
+  window.RecipeBridge.recipePage = payload;
+  bridgeDispatch('RecipePage', payload);
+  setStatus('CreateRecipePage: ' + payload.components.length + ' component(s)');
   return true;
 }
 
@@ -135,7 +222,7 @@ function bridgeDispatch(kind, value) {
 function setStatus(msg) {
   var el = document.getElementById('status');
   if (el) el.textContent = msg;
-  console.log('[NavigationBar] ' + msg);
+  // console.log('[RecipePage] ' + msg);
 }
 
 ////////////////////////////////////////////
@@ -159,19 +246,17 @@ WebCC.start(
       // Seed current values, then subscribe for later changes.
       try {
         var props = WebCC.Properties;
-        console.log("props: ", props.Language);
+        // console.log("props: ", props.Language);
         if (props) {
           window.RecipeBridge.language = props.Language;
-          window.RecipeBridge.selectedItemNumber = props.selectedItemNumber;
           window.RecipeBridge.recipeItemsPerPage = props.RecipeItemsPerPage;
           window.RecipeBridge.showTemplate = props.showTemplate;
           bridgeDispatch('Language', props.Language);
-          bridgeDispatch('SelectedItemNumber', props.selectedItemNumber);
           bridgeDispatch('RecipeItemsPerPage', props.RecipeItemsPerPage);
           bridgeDispatch('ShowTemplate', props.showTemplate);
         }
       } catch (e) {
-        console.warn('[NavigationBar] property read failed:', e);
+        console.warn('[RecipePage] property read failed:', e);
       }
 
       if (WebCC.onPropertyChanged) {
@@ -180,12 +265,6 @@ WebCC.start(
             case 'Language':
               window.RecipeBridge.language = val.value;
               bridgeDispatch('Language', val.value);
-              break;
-            case 'selectedItemNumber':
-              if (val.value >= 0 && val.value <= 3) {
-                window.RecipeBridge.selectedItemNumber = val.value;
-                bridgeDispatch('SelectedItemNumber', val.value);
-              }
               break;
             case 'showTemplate':
               window.RecipeBridge.showTemplate = val.value;
@@ -243,6 +322,33 @@ WebCC.start(
       },
 
       /**
+       * Supply the materials a component row can choose from.
+       *
+       * Accepts the same three payload spellings as CreateCards. Each row is
+       * expected to carry the recipe_material columns - code and name at
+       * minimum, since those are what the two dropdowns render.
+       */
+      LoadAvailableMaterials: function (data) {
+        bridgeLoadAvailableMaterials(data);
+      },
+
+      /**
+       * Open the detail page for one recipe.
+       *
+       * Takes a single object rather than a row list, so it does not go
+       * through bridgeAcceptRows: the payload is the recipe_header row with a
+       * `components` array on it, which is what a join of recipe_components to
+       * recipe_material returns.
+       *
+       * An empty payload closes the page and returns the pane to its empty
+       * state, which is how the container withdraws it without a second
+       * method.
+       */
+      CreateRecipePage: function (data) {
+        bridgeCreateRecipePage(data);
+      },
+
+      /**
        * Report the outcome of a create attempt on the new-recipe form.
        *
        * 0 = the recipe was created, 1 = it could not be written to the
@@ -253,8 +359,27 @@ WebCC.start(
        * until the form is closed or edited.
        */
       NewRecipeMessage: function (MessageNumber, Timeout) {
-        console.log('[RecipePage] NewRecipeMessage called with', MessageNumber, Timeout);
+        // console.log('[RecipePage] NewRecipeMessage called with', MessageNumber, Timeout);
         bridgeDispatch('NewRecipeMessage', {
+          code: Number(MessageNumber),
+          duration: Number(Timeout) || 0
+        });
+      },
+
+      /**
+       * Report what became of a delete the operator confirmed.
+       *
+       * 0 closes the detail page, since the recipe it describes is gone; 1
+       * leaves it open with the error, so the operator can read why and the
+       * row is still in front of them. Any other number just clears the
+       * pending state.
+       *
+       * Until this arrives the page stays in its pending state, which is what
+       * stops a second confirm while the first is still being written.
+       */
+      DeleteRecipeMessage: function (MessageNumber, Timeout) {
+        // console.log('[RecipePage] DeleteRecipeMessage called with', MessageNumber, Timeout);
+        bridgeDispatch('DeleteRecipeMessage', {
           code: Number(MessageNumber),
           duration: Number(Timeout) || 0
         });
@@ -269,15 +394,14 @@ WebCC.start(
        * first, and identical state would be ignored as equal.
        */
       ClearSidePage: function () {
-        console.log('[RecipePage] ClearSidePage called');
+        // console.log('[RecipePage] ClearSidePage called');
         bridgeDispatch('ClearSidePage', Date.now());
       }
     },
-    events: ['onPressingIcon', 'onLoginOut', 'onCardSelect', 'onRecipeCreate', 'onLanguageChange', 'onRecipeItemsPerPageChange'],
+    events: ['onCardSelect', 'onRecipeCreate', 'onRecipeDelete', 'onRecipeUpdate', 'onNewRecipeButton', 'onSidePageChange', 'onRecipeItemsPerPageChange'],
     properties: {
       Language: 'en',
-      selectedItemNumber: 0,
-      RecipeItemsPerPage: 5,
+          RecipeItemsPerPage: 5,
       showTemplate: true
     }
   },
@@ -309,9 +433,15 @@ WebCC.start(
  */
 window.RecipeBridge.createCards = bridgeCreateCards;
 
+/** Same, for the material catalogue: RecipeBridge.loadAvailableMaterials(x) */
+window.RecipeBridge.loadAvailableMaterials = bridgeLoadAvailableMaterials;
+
+/** Same, for the detail page: RecipeBridge.createRecipePage(payload) */
+window.RecipeBridge.createRecipePage = bridgeCreateRecipePage;
+
 window.RecipeBridge.fire = function (name, payload) {
   if (!window.WebCC || !WebCC.Events || !WebCC.Events.fire) {
-    console.log('[NavigationBar] standalone: event ' + name + ' not fired', payload);
+    // console.log('[RecipePage] standalone: event ' + name + ' not fired', payload);
     return false;
   }
   return WebCC.Events.fire(name, payload);

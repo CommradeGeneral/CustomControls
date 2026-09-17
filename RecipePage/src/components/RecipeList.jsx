@@ -34,6 +34,34 @@ const templateRecipes = [
 ]
 
 /**
+ * Which rows the list actually shows.
+ *
+ * Supplied rows win whenever CreateCards has delivered any, so the control is
+ * useful without waiting for the container to think about showTemplate. The
+ * template stands in only while nothing has been supplied and the flag is on;
+ * with neither, the list is legitimately empty.
+ *
+ * Null vs [] carries the distinction: null is "never supplied", while an empty
+ * array is a real result and renders no cards rather than falling back to the
+ * demo rows.
+ */
+const rowsToRender = (supplied, showTemplate) =>
+  supplied ?? (showTemplate ? templateRecipes : [])
+
+/**
+ * The codes currently on screen, for callers that must not offer one again.
+ *
+ * Exported from here because the fallback above decides which rows exist, and
+ * a second copy of that rule elsewhere would drift. Goes through buildCards so
+ * a container row's spelling of the column (Code, RecipeCode, ...) resolves the
+ * same way it does for the cards themselves.
+ */
+export const recipeCodesFor = (supplied, showTemplate) =>
+  buildCards(rowsToRender(supplied, showTemplate))
+    .map((row) => row.code)
+    .filter(Boolean)
+
+/**
  * Render a timestamp column as `DD-MM-YYYY hh:mm`, or '' when absent.
  *
  * UTC, not local time. The stored timestamps are UTC, and rendering them
@@ -145,9 +173,7 @@ export default function RecipeList({ language = 'en', itemsPerPage = 15, onItems
   // empty array is a real result and renders no cards rather than falling back
   // to the demo rows. Both sources go through the builder, so the cards below
   // see one shape regardless of origin.
-  const recipes = buildCards(
-    recipesProp ?? (showTemplate ? templateRecipes : [])
-  )
+  const recipes = buildCards(rowsToRender(recipesProp, showTemplate))
   // Matches on title or code only — the description is deliberately not
   // indexed, so a word common to every description cannot match everything.
   //
