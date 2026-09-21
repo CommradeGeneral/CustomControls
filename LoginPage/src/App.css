@@ -1,6 +1,31 @@
 /*
- * App-level styles.
+ * The control's layout: one centred card, with the language dropdown pinned to
+ * the leading corner above it.
+ *
+ * Held here rather than as inline styles on the elements, so the layout can be
+ * read in one place and App stays a description of which card is showing.
  *
  * The login card and its controls live in components/LoginForm.css, next to
  * the component that owns them.
  */
+.login-container {
+  position: relative;
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  background-color: #00ff004f;
+  background-size: cover;
+  background-position: center;
+}
+
+/*
+ * Pinned with logical properties rather than left/right, so the dropdown
+ * follows the reading direction: it sits top-left in English and top-right in
+ * Arabic without the component needing to know which is in force.
+ */
+.login-container__language {
+  position: absolute;
+  top: 10px;
+  inset-inline-start: 10px;
+}

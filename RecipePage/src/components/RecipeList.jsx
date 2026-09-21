@@ -1,63 +1,30 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
+import { AlertCircle, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
 import buildCards from './buildCards'
 import PageSelect from './PageSelect'
 import './RecipeList.css'
 
-// Example/demo data, shown only while the showTemplate property is true. When
-// the container turns it off the same cards are meant to be filled from an
-// external query instead, so the list renders empty rather than falling back.
-//
-// Shape mirrors the recipes table one-to-one: id, plant_id, code, name,
-// description, is_active, created_at, updated_at. Text columns are plain
-// strings, so the same values render in both languages.
-const templateRecipes = [
-  { id: 1, plant_id: 1, code: 'RC-0025', name: 'Standard Concrete', description: 'Standard concrete mix recipe', is_active: true, created_at: '2026-01-12T08:15:00Z', updated_at: '2026-08-03T10:42:00Z' },
-  { id: 2, plant_id: 1, code: 'RC-0030', name: 'Standard Concrete', description: 'Standard concrete mix recipe', is_active: true, created_at: '2026-01-20T09:05:00Z', updated_at: '2026-09-01T14:20:00Z' },
-  { id: 3, plant_id: 2, code: 'RC-0035', name: 'High Strength Concrete', description: 'High strength concrete mix recipe', is_active: true, created_at: '2026-02-02T11:30:00Z', updated_at: '2026-07-18T16:05:00Z' },
-  { id: 4, plant_id: 2, code: 'RC-0040', name: 'High Strength Concrete', description: 'High strength concrete mix recipe', is_active: true, created_at: '2026-02-14T13:45:00Z', updated_at: '2026-06-22T09:10:00Z' },
-  { id: 5, plant_id: 3, code: 'RC-0020', name: 'Lean Concrete', description: 'Lean concrete mix recipe', is_active: true, created_at: '2026-01-05T07:50:00Z', updated_at: '2026-05-30T11:55:00Z' },
-  { id: 6, plant_id: 1, code: 'RC-0031', name: 'Pump Concrete', description: 'Pump concrete mix recipe', is_active: false, created_at: '2026-02-21T15:20:00Z', updated_at: '2026-08-27T08:35:00Z' },
-  { id: 7, plant_id: 4, code: 'RC-0045', name: 'High Performance', description: 'High performance concrete mix recipe', is_active: true, created_at: '2026-03-03T10:00:00Z', updated_at: '2026-09-05T12:15:00Z' },
-  { id: 8, plant_id: 5, code: 'RC-0050', name: 'Rapid Set Concrete', description: 'Rapid set concrete mix recipe', is_active: true, created_at: '2026-03-17T12:25:00Z', updated_at: '2026-07-09T15:40:00Z' },
-  { id: 9, plant_id: 4, code: 'RC-0055', name: 'Decorative Concrete', description: 'Decorative concrete mix recipe', is_active: true, created_at: '2026-03-29T09:35:00Z', updated_at: '2026-06-11T10:05:00Z' },
-  { id: 10, plant_id: 2, code: 'RC-0060', name: 'Self-Compacting Concrete', description: 'Self-compacting concrete mix recipe', is_active: true, created_at: '2026-04-08T14:10:00Z', updated_at: '2026-08-19T13:50:00Z' },
-  { id: 11, plant_id: 3, code: 'RC-0065', name: 'Fiber Reinforced Concrete', description: 'Fiber reinforced concrete mix recipe', is_active: true, created_at: '2026-04-19T08:55:00Z', updated_at: '2026-09-10T09:25:00Z' },
-  { id: 12, plant_id: 1, code: 'RC-0070', name: 'Lightweight Concrete', description: 'Lightweight concrete mix recipe', is_active: false, created_at: '2026-05-02T11:15:00Z', updated_at: '2026-05-28T16:30:00Z' },
-  { id: 13, plant_id: 5, code: 'RC-0075', name: 'Waterproof Concrete', description: 'Waterproof concrete mix recipe', is_active: true, created_at: '2026-05-16T13:05:00Z', updated_at: '2026-08-08T11:45:00Z' },
-  { id: 14, plant_id: 6, code: 'RC-0080', name: 'Recycled Aggregate Concrete', description: 'Recycled aggregate concrete mix recipe', is_active: true, created_at: '2026-06-01T09:40:00Z', updated_at: '2026-09-12T15:10:00Z' },
-  { id: 15, plant_id: 2, code: 'RC-0085', name: 'Cold Weather Concrete', description: 'Cold weather concrete mix recipe', is_active: true, created_at: '2026-06-23T10:20:00Z', updated_at: '2026-07-31T08:20:00Z' },
-  { id: 16, plant_id: 4, code: 'RC-0090', name: 'Bridge Deck Concrete', description: 'Bridge deck concrete mix recipe', is_active: true, created_at: '2026-07-07T12:50:00Z', updated_at: '2026-09-13T17:00:00Z' },
-  { id: 17, plant_id: 3, code: 'RC-0095', name: 'Pavement Concrete', description: 'Pavement concrete mix recipe', is_active: true, created_at: '2026-07-25T08:30:00Z', updated_at: '2026-08-30T14:05:00Z' },
-]
 
 /**
  * Which rows the list actually shows.
  *
- * Supplied rows win whenever CreateCards has delivered any, so the control is
- * useful without waiting for the container to think about showTemplate. The
- * template stands in only while nothing has been supplied and the flag is on;
- * with neither, the list is legitimately empty.
- *
- * Null vs [] carries the distinction: null is "never supplied", while an empty
- * array is a real result and renders no cards rather than falling back to the
- * demo rows.
+ * Nothing until CreateCards has delivered rows: null is "never supplied" and
+ * an empty array is a real result, and both render no cards. The distinction
+ * is kept because the two mean different things to a reader, not because they
+ * render differently.
  */
-const rowsToRender = (supplied, showTemplate) =>
-  supplied ?? (showTemplate ? templateRecipes : [])
+const rowsToRender = (supplied) => supplied ?? []
 
 /**
  * The codes currently on screen, for callers that must not offer one again.
  *
- * Exported from here because the fallback above decides which rows exist, and
- * a second copy of that rule elsewhere would drift. Goes through buildCards so
- * a container row's spelling of the column (Code, RecipeCode, ...) resolves the
- * same way it does for the cards themselves.
+ * Goes through buildCards so a container row's spelling of the column (Code,
+ * RecipeCode, ...) resolves the same way it does for the cards themselves.
  */
-export const recipeCodesFor = (supplied, showTemplate) =>
-  buildCards(rowsToRender(supplied, showTemplate))
+export const recipeCodesFor = (supplied) =>
+  buildCards(rowsToRender(supplied))
     .map((row) => row.code)
     .filter(Boolean)
 
@@ -91,6 +58,9 @@ const labels = {
     previous: 'Previous page', next: 'Next page',
     created: 'Created', updated: 'Last updated', active: 'Active', inactive: 'Inactive',
     noRecipes: 'No recipes to display',
+    loadingCards: 'Loading from the database',
+    loadFailed: 'Failed to load from Database',
+    reload: 'Reload',
   },
   ar: {
     recipeList: 'قائمة الوصفات', newRecipe: 'وصفة جديدة', search: 'البحث عن وصفة...',
@@ -98,6 +68,9 @@ const labels = {
     previous: 'الصفحة السابقة', next: 'الصفحة التالية',
     created: 'أُنشئت', updated: 'آخر تحديث', active: 'نشطة', inactive: 'غير نشطة',
     noRecipes: 'لا توجد وصفات للعرض',
+    loadingCards: 'جارٍ التحميل من قاعدة البيانات',
+    loadFailed: 'تعذّر التحميل من قاعدة البيانات',
+    reload: 'إعادة التحميل',
   },
 }
 
@@ -149,7 +122,7 @@ function RecipeCard({ recipe, selected, onSelect, language }) {
   )
 }
 
-export default function RecipeList({ language = 'en', itemsPerPage = 15, onItemsPerPageChange, showTemplate = true, recipes: recipesProp, onCardSelect, onSelectedRowChange, selectedId, onNewRecipe }) {
+export default function RecipeList({ language = 'en', itemsPerPage = 15, onItemsPerPageChange, recipes: recipesProp, loadingCards = 0, onCardSelect, onSelectedRowChange, selectedId, onNewRecipe, onReloadCards }) {
   const text = labels[language]
   // Owned by the container via the RecipeItemsPerPage property; the input below
   // reports upward rather than setting it here.
@@ -164,16 +137,8 @@ export default function RecipeList({ language = 'en', itemsPerPage = 15, onItems
   const effectiveSelectedId = selectedId === undefined ? selectedRecipe : selectedId
   const [hasScrollableCards, setHasScrollableCards] = useState(false)
   const searchTerms = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean)
-  // Supplied rows win whenever CreateCards has delivered any, so the control is
-  // useful without waiting for the container to think about showTemplate. The
-  // template stands in only while nothing has been supplied and the flag is on;
-  // with neither, the list is legitimately empty.
-  //
-  // Null vs [] carries the distinction: null is "never supplied", while an
-  // empty array is a real result and renders no cards rather than falling back
-  // to the demo rows. Both sources go through the builder, so the cards below
-  // see one shape regardless of origin.
-  const recipes = buildCards(rowsToRender(recipesProp, showTemplate))
+  // Rows arrive only from the container, through CreateCards.
+  const recipes = buildCards(rowsToRender(recipesProp))
   // Matches on title or code only — the description is deliberately not
   // indexed, so a word common to every description cannot match everything.
   //
@@ -273,7 +238,37 @@ export default function RecipeList({ language = 'en', itemsPerPage = 15, onItems
         events={{ updated: (instance) => setHasScrollableCards(instance.state().hasOverflow.y) }}
       >
         <div className="recipe-cards__content">
-          {visibleRecipes.length === 0 && (
+          {/* Replaces the empty state rather than sitting beside it: while the
+              query is running or after it failed the list is not empty, it is
+              unknown, and saying "no recipes" would be a claim the control
+              cannot make. The cards it already has stay put underneath. */}
+          {loadingCards === 1 && (
+            <div className="recipe-cards__loading" role="status">
+              <div className="recipe-cards__spinner" aria-hidden="true" />
+              <p className="recipe-cards__loading-text">{text.loadingCards}</p>
+            </div>
+          )}
+          {/* alert rather than status: a failure is worth interrupting a
+              screen reader for, where the wait is not. */}
+          {loadingCards === 2 && (
+            <div className="recipe-cards__loading" role="alert">
+              <AlertCircle className="recipe-cards__failed-icon" size="1em" aria-hidden="true" />
+              <p className="recipe-cards__failed-text">{text.loadFailed}</p>
+              {/* A button styled as a link, not an anchor: there is nowhere to
+                  navigate to, and an href="#" would be operable by keyboard
+                  only by accident. The control retries nothing itself - it
+                  reports the request and waits for the container to run the
+                  query again. */}
+              <button
+                className="recipe-cards__reload"
+                type="button"
+                onClick={onReloadCards}
+              >
+                {text.reload}
+              </button>
+            </div>
+          )}
+          {loadingCards === 0 && visibleRecipes.length === 0 && (
             <p className="recipe-cards__empty">{text.noRecipes}</p>
           )}
           {visibleRecipes.map((recipe) => (

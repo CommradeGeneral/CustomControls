@@ -1,123 +1,71 @@
-/**
- * Recipe list UI.
- *
- * Owns no part of the WebCC handshake — code.js does that in <head> before this
- * module is parsed. React only subscribes to window.RecipeBridge, so adding a
- * framework cannot affect contract registration.
- */
-import { StrictMode, useEffect, useState } from 'react'
+import { StrictMode, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
+import LanguageDropdown from './components/LanguageDropdown'
+import LoginForm from './components/LoginForm'
+import { useBridge } from './hooks/useBridge'
 import 'overlayscrollbars/styles/overlayscrollbars.css'
 import './index.css'
 import './App.css'
-// Imported rather than referenced by path: the control ships as one inlined
-// HTML file served from /screen_modules/, where a relative asset URL would
-// not resolve. Vite turns this into a data URI that survives the bundle.
-import backgroundUrl from './assets/elsisi.webp'
-import { langConfigs } from './langConfigs'
-import LanguageDropdown from './components/LanguageDropdown'
-import LoginForm from './components/LoginForm'
-import RegisterForm from './components/RegisterForm'
 
-
+/**
+ * The control: one sign-in card.
+ *
+ * Holds no state of its own. Everything the container owns lives in useBridge,
+ * so what remains here is the wiring between it and the layout.
+ *
+ * Owns no part of the WebCC handshake either - code.js does that in <head>
+ * before this module is parsed.
+ */
 function App() {
-  const bridge = window.RecipeBridge
-  const [language, setLanguage] = useState('en');
-  // Which card is showing. Deliberately local: the container drives language
-  // but has no say in the login/register view, so this needs no contract event.
-  const [view, setView] = useState('login');
-  // Message shown under the sign-in button, set by the container's
-  // LoginMessage method. `seq` makes every call distinct, so re-sending the
-  // same code restarts the fade rather than being ignored as equal state.
-  //
-  // Volatile by design: it is never written to a WebCC property or to browser
-  // storage, so a recreated control comes up with no message, and leaving the
-  // login view drops it (see `switchView`) rather than letting a stale error
-  // reappear over freshly entered credentials.
-  const [loginMessage, setLoginMessage] = useState(null);
-  // Same contract as loginMessage, for the register card. Kept separate so a
-  // message raised against one card can never surface on the other.
-  const [registerMessage, setRegisterMessage] = useState(null);
+  const { ready, language, loginMessage, fire } = useBridge()
 
-  // Changing view discards the message. LoginForm keeps its own copy of the
-  // text so it can outlive the fade, but that copy dies with the unmount while
-  // this one would not — leaving the old error to re-show, and never fade,
-  // when the login card came back.
-  const switchView = (next) => {
-    setLoginMessage(null);
-    setRegisterMessage(null);
-    setView(next);
-  };
+  // The document, not the control: an RTL language has to reach the root for
+  // scrollbars and text selection to follow it, which a nested dir cannot do.
   useEffect(() => {
-    bridge.onLanguage = (val) => {
-      // The container may hand over an empty/unknown value before the tag is
-      // resolved; keep the last good language rather than blanking the labels.
-      const code = typeof val === 'string' ? val.trim().toLowerCase() : ''
-      if (langConfigs['dir'][code]) setLanguage(code)
-    }
-    bridge.onLoginMessage = ({ code, duration }) => {
-      setLoginMessage((previous) => ({
-        code,
-        duration,
-        seq: (previous?.seq ?? 0) + 1
-      }))
-    }
-    bridge.onRegisterMessage = ({ code, duration }) => {
-      setRegisterMessage((previous) => ({
-        code,
-        duration,
-        seq: (previous?.seq ?? 0) + 1
-      }))
-    }
-    const queued = bridge.pending.splice(0, bridge.pending.length)
-    queued.forEach(({ kind, value }) => bridge['on' + kind]?.(value))
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'
+    document.documentElement.lang = language
+  }, [language])
 
-    return () => {
-      bridge.onUpdateRecipeList = null
-      bridge.onRecipesPerPage = null
-      bridge.onShowPage = null
-      bridge.onLoginMessage = null
-      bridge.onRegisterMessage = null
-    }
-  }
-    , [bridge])
-  return <div style={{
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    //backgroundImage: `url(${backgroundUrl})`,
-    backgroundColor: '#00ff004f',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    direction: langConfigs["dir"][language],
-    position: 'relative'
-  }}>
-    {view === 'login'
-      ? <LoginForm
+  // Inside a container, nothing is rendered until the handshake succeeds: the
+  // UI would otherwise flash default property values before TIA supplies the
+  // real ones. Standalone there is nothing to wait for, so `ready` starts true.
+  if (!ready) return null
+
+  return (
+    <div className="login-container" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <LoginForm
+        language={language}
+        message={loginMessage}
+        // Purely outbound: the container owns authentication, so the card only
+        // reports the attempt and waits for LoginMessage to answer.
+        onSubmit={(user) => fireCredentials('onSignIn', user, fire)}
+      />
+
+      <div className="login-container__language">
+        <LanguageDropdown
           language={language}
-          message={loginMessage}
-          onSwitch={() => switchView('register')}
-          onSubmit={(user) => bridge.fire('onSignIn', JSON.stringify(user))} />
-      : <RegisterForm
-          language={language}
-          message={registerMessage}
-          onSwitch={() => switchView('login')}
-          onSubmit={(user) => bridge.fire('onSignUp', JSON.stringify(user))} />}
-    <div style={{
-      position: 'absolute',
-      top: '10px',
-      left: langConfigs["dir"][language] == 'ltr' ? '10px' : 'auto',
-      right: langConfigs["dir"][language] == 'rtl' ? '10px' : 'auto',
-    }}>
-      <LanguageDropdown language={language} onSelect={(val)=> {
-        //setLanguage(val);
-        console.log("Language select: ", val);
-        bridge.fire('onLanguageChange', val);
-      }} />
+          // A round trip: the language is the container's property to set, so
+          // this only reports the change and waits for it to come back.
+          onSelect={(value) => fire('onLanguageChange', value)}
+        />
+      </div>
     </div>
-    
-  </div>;
+  )
+}
+
+/**
+ * Send credentials as a JSON string.
+ *
+ * Guarded because the payload is assembled from operator input: a value that
+ * cannot be serialized would otherwise throw out of the event handler and
+ * leave the card looking as though nothing happened.
+ */
+function fireCredentials(event, user, fire) {
+  try {
+    fire(event, JSON.stringify(user))
+  } catch (error) {
+    console.warn(`[LoginPage] ${event}: credentials are not serializable`, error)
+  }
 }
 
 createRoot(document.getElementById('root')).render(

@@ -1,12 +1,14 @@
 {
-  "name": "login",
+  "name": "loginpage",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build && npm run package",
-    "package": "node scripts/package-control.mjs"
+    "package": "node scripts/package-control.mjs",
+    "lint": "oxlint",
+    "preview": "vite preview"
   },
   "dependencies": {
     "overlayscrollbars": "latest",
@@ -17,6 +19,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "latest",
+    "oxlint": "^1.81.0",
     "vite": "latest",
     "vite-plugin-singlefile": "latest"
   }

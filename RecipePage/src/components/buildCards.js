@@ -1,3 +1,5 @@
+import { toActive, toMilliseconds, toText } from '../lib/containerValues'
+
 // Normalizes an arbitrary array of rows into the card shape RecipeCard renders.
 //
 // The rows come from two places that do not agree on field names: the template
@@ -28,69 +30,16 @@ function pick(row, aliases) {
 }
 
 /**
- * Coerce to boolean, treating the string and numeric spellings a container may
- * send as truthy/falsy rather than letting 'false' come through as true.
+ * A timestamp the card can render, or '' when the value is not a usable time.
  *
- * Absent means active: a source that omits the column is not expressing
- * "inactive", and defaulting the other way would grey out every card.
- */
-function toActive(value) {
-  if (value === undefined) return true
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase()
-    if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === '') return false
-    return true
-  }
-  return Boolean(value)
-}
-
-/** Text fields render directly, so anything non-string becomes '' not 'undefined'. */
-function toText(value) {
-  if (value === undefined) return ''
-  return typeof value === 'string' ? value : String(value)
-}
-
-/**
- * Milliseconds since the epoch, or null when the number is not a usable time.
- *
- * Bare numbers are ambiguous: the database sends seconds, while JS dates are
- * milliseconds, and the two differ by a factor of 1000 rather than failing
- * loudly - a seconds value read as milliseconds silently lands in 1970. Values
- * below the threshold are therefore treated as seconds, which is unambiguous
- * for any timestamp between 1973 and the year 5138.
- */
-const MS_THRESHOLD = 1e11
-
-function epochToMs(value) {
-  if (!Number.isFinite(value)) return null
-  return Math.abs(value) < MS_THRESHOLD ? value * 1000 : value
-}
-
-/**
- * Timestamps are passed through as-is when they are a string or Date, since
- * formatDate already parses and rejects. Anything else is dropped to '' so the
- * card omits the date row rather than printing an unparseable value.
- *
- * The [seconds, nanoseconds] tuple is what the container actually sends for a
- * timestamp column. Only the first element is used: formatDate renders to the
- * minute, so the sub-second half cannot change the output, and adding it would
- * risk a rounding error at no benefit.
+ * Returned as an ISO string rather than a number because RecipeCard formats it
+ * later. toMilliseconds does the decoding, so the [seconds, nanoseconds] tuple,
+ * bare epoch numbers, the .NET /Date(...)/ wrapper and ISO strings are all
+ * understood the same way the detail page understands them.
  */
 function toTimestamp(value) {
-  if (typeof value === 'string') return value
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? '' : value.toISOString()
-
-  if (Array.isArray(value)) {
-    const ms = epochToMs(Number(value[0]))
-    return ms === null ? '' : new Date(ms).toISOString()
-  }
-  if (typeof value === 'number') {
-    const ms = epochToMs(value)
-    return ms === null ? '' : new Date(ms).toISOString()
-  }
-  // A numeric string that reached here is an epoch value, not an ISO date:
-  // the string branch above already claimed anything Date can parse.
-  return ''
+  const ms = toMilliseconds(value)
+  return ms === null ? '' : new Date(ms).toISOString()
 }
 
 /**

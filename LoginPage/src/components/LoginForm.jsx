@@ -1,5 +1,5 @@
 /**
- * Login card: heading, credential fields, submit, and the sign-up line.
+ * Login card: heading, credential fields, and submit.
  *
  * Purely presentational — the language code is owned by the caller so the
  * container can drive it through the `Language` property, exactly as
@@ -14,8 +14,6 @@ const Labels = {
   "username": { "en": "username", "ar": "اسم المستخدم" },
   "password": { "en": "password", "ar": "كلمة المرور" },
   "sign in": { "en": "Sign in", "ar": "دخول" },
-  "no account": { "en": "Don't have an account?", "ar": "ليس لديك حساب؟" },
-  "sign up": { "en": "Sign up", "ar": "إنشاء حساب" },
 }
 
 /**
@@ -36,7 +34,7 @@ const Messages = {
 /** Length of the CSS opacity transition, kept in step with LoginForm.css. */
 const FADE_MS = 400
 
-export default function LoginForm({ language, message, onSwitch, onSubmit }) {
+export default function LoginForm({ language, message, onSubmit }) {
   // Controlled so the entered credentials can be handed to `onSubmit`; the
   // values live here and are not read by anything else in the tree.
   const [username, setUsername] = useState('')
@@ -103,12 +101,6 @@ export default function LoginForm({ language, message, onSwitch, onSubmit }) {
           {Messages[shown][language] || Messages[shown]["en"]}
         </p>
       )}
-      <p className="login-signup">
-        {Labels["no account"][language]}{' '}
-        <button type="button" className="signup-link" onClick={onSwitch}>
-          {Labels["sign up"][language]}
-        </button>
-      </p>
     </div>
   )
 }

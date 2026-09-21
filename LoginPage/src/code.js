@@ -1,41 +1,40 @@
 ////////////////////////////////////////////
 // WinCC Unified contract owner — plain classic script, no bundler.
 //
-// Structure is deliberately identical to the MinTest / MinTestReact controls
-// that work in this project: this file runs in <head> before anything else and
-// calls WebCC.start at top level with an empty extensions array.
+// WebCC starts before React and forwards TIA property changes to the UI.
 //
-// React is NOT involved in the handshake. It mounts afterwards from app.jsx and
-// only talks to window.RecipeBridge, so the contract registration path is
-// exactly the one already proven to work here. Do not move WebCC.start into a
-// module or a React effect.
-
-/**
- * Shared state between this script and the React tree.
- *
- * The `on*` slots are filled in by React once it mounts. The contract methods
- * below read them at call time and fall back to `pending`, so a call arriving
- * before React is ready is replayed rather than lost.
- */
-window.RecipeBridge = {
+// React is NOT involved in the handshake. It mounts afterwards from App.jsx and
+// only talks to window.LoginBridge, so adding a framework cannot affect
+// contract registration. Do not move WebCC.start into a module or an effect.
+window.LoginBridge = {
   connected: false,
-  // Latest values from the container, applied by React on mount.
-  recipesJson: null,
-  recipesPerPage: 5,
+  // Whether a container is present at all. Distinct from `connected`: absent
+  // means standalone (browser/dev, render immediately), present means we must
+  // wait for the handshake before rendering.
+  hasContainer: typeof WebCC !== 'undefined',
+  // Set once the handshake has settled either way, so the UI can tell "still
+  // waiting" from "tried and failed".
+  settled: false,
   language: 'en',
   // Replayed into React when it registers its handlers.
   pending: [],
-  onUpdateRecipeList: null,
-  onShowPage: null,
-  onRecipesPerPage: null,
   onLanguage: null,
   onLoginMessage: null,
-  onRegisterMessage: null,
-  onConnected: null
+  // Filled in by React; called when connected/settled changes so the gate can
+  // re-render. `connected` is a plain field and is not observable on its own.
+  onConnected: null,
 };
 
+/** Mark the handshake settled and let React know it can re-evaluate the gate. */
+function bridgeSettle(isConnected) {
+  var b = window.LoginBridge;
+  b.connected = isConnected;
+  b.settled = true;
+  if (b.onConnected) b.onConnected();
+}
+
 function bridgeDispatch(kind, value) {
-  var b = window.RecipeBridge;
+  var b = window.LoginBridge;
   var handler = b['on' + kind];
   if (handler) handler(value);
   else b.pending.push({ kind: kind, value: value });
@@ -44,66 +43,67 @@ function bridgeDispatch(kind, value) {
 function setStatus(msg) {
   var el = document.getElementById('status');
   if (el) el.textContent = msg;
-  console.log('[RecipeList] ' + msg);
+  // console.log('[LoginPage] ' + msg);
+}
+
+/**
+ * Raise the card's message.
+ *
+ * Both arguments are passed through as one payload so React sees a single
+ * state change: a code the UI maps to a localised string, and a fade delay in
+ * milliseconds (0 or less means the message stays).
+ */
+function bridgeMessage(kind, messageNumber, timeout) {
+  bridgeDispatch(kind, {
+    code: Number(messageNumber),
+    duration: Number(timeout) || 0,
+  });
 }
 
 ////////////////////////////////////////////
-// Initialize the custom control
+// Initialize the custom control.
+//
+// Guarded because this file also runs standalone (plain browser, `npm run
+// dev`), where no container has defined WebCC. A bare WebCC.start() there is a
+// ReferenceError that aborts the script before `fire` below is attached, so the
+// absence has to be handled rather than thrown.
+if (typeof WebCC === 'undefined') {
+  setStatus('standalone: no container');
+  bridgeSettle(false);
+} else {
 WebCC.start(
   // callback function; occurs when the connection is done or failed.
   function (result) {
     if (result) {
-      window.RecipeBridge.connected = true;
+      bridgeSettle(true);
       setStatus('connected');
 
-      // Seed current property values, then subscribe for later changes.
+      // Seed the current property value, then subscribe for later changes.
       try {
         var props = WebCC.Properties;
         if (props) {
-          console.log("code line 61: ", props);
-          window.RecipeBridge.recipesJson = props.RecipeList;
-          window.RecipeBridge.recipesPerPage = props.RecipesPerPage;
-          window.RecipeBridge.language = props.Language;
-          bridgeDispatch('UpdateRecipeList', props.RecipeList);
-          bridgeDispatch('RecipesPerPage', props.RecipesPerPage);
+          window.LoginBridge.language = props.Language;
           bridgeDispatch('Language', props.Language);
         }
       } catch (e) {
-        console.warn('[RecipeList] property read failed:', e);
+        console.warn('[LoginPage] property read failed:', e);
       }
 
       if (WebCC.onPropertyChanged) {
         WebCC.onPropertyChanged.subscribe(function (val) {
-          console.log("changed:",val);
-          switch (val.key) {
-            case 'RecipeList':
-              window.RecipeBridge.recipesJson = val.value;
-              console.log(val.value);
-              bridgeDispatch('UpdateRecipeList', val.value);
-              break;
-            case 'RecipesPerPage':
-              if (val.value > 0) {
-                window.RecipeBridge.recipesPerPage = val.value;
-                bridgeDispatch('RecipesPerPage', val.value);
-              }
-              break;
-            case 'Language':
-              window.RecipeBridge.language = val.value;
-              console.log(val.value);
-              bridgeDispatch('Language', val.value);
-              break;
+          if (val.key === 'Language') {
+            window.LoginBridge.language = val.value;
+            bridgeDispatch('Language', val.value);
           }
         });
       }
-
-      if (window.RecipeBridge.onConnected) window.RecipeBridge.onConnected();
     } else {
+      bridgeSettle(false);
       setStatus('connection failed');
     }
   },
   // contract (see also manifest.json)
   {
-    // Methods
     methods: {
       /**
        * Diagnostic sink for the container: whatever it sends is logged here.
@@ -113,48 +113,23 @@ WebCC.start(
        * half that a fired event cannot demonstrate.
        */
       Print: function (data) {
-        console.log('[RecipeList] Print called with', data);
+        console.log('[LoginPage] Print called with', data);
         setStatus('Print: ' + data);
       },
       /**
-       * Show a fixed message under the login button.
+       * Show a fixed message under the sign-in button.
        *
-       * Both arguments are passed through as one payload so React sees a
-       * single state change: a code the UI maps to a localised string, and a
-       * fade delay in milliseconds (0 or less means the message stays).
+       * 1 = invalid username or password, 2 = badly formatted username;
+       * anything else withdraws the message.
        */
-      LoginMessage: function (messageNum, duration) {
-        console.log('[RecipeList] LoginMessage called with', messageNum, duration);
-        bridgeDispatch('LoginMessage', { code: Number(messageNum), duration: Number(duration) || 0 });
-      },
-      /**
-       * Show a fixed message under the sign-up button.
-       *
-       * Same shape as LoginMessage but a separate method and a separate code
-       * range, so the container can address either card without the two
-       * message sets colliding.
-       */
-      RegisterMessage: function (messageNum, duration) {
-        console.log('[RecipeList] RegisterMessage called with', messageNum, duration);
-        bridgeDispatch('RegisterMessage', { code: Number(messageNum), duration: Number(duration) || 0 });
-      },
-      UpdateRecipeList: function (recipes) {
-        console.log('[RecipeList] UpdateRecipeList called');
-        window.RecipeBridge.recipesJson = recipes;
-        bridgeDispatch('UpdateRecipeList', recipes);
-      },
-      ShowPage: function (pageNumber) {
-        console.log('[RecipeList] ShowPage called with', pageNumber);
-        bridgeDispatch('ShowPage', pageNumber);
+      LoginMessage: function (messageNumber, timeout) {
+        // console.log('[LoginPage] LoginMessage called with', messageNumber, timeout);
+        bridgeMessage('LoginMessage', messageNumber, timeout);
       }
     },
-    // Events
-    events: ['onPressOnItem', 'onPressNewRecipe', 'onLanguageChange', 'onSignIn', 'onSignUp'],
-    // Properties
+    events: ['onSignIn', 'onLanguageChange'],
     properties: {
-      RecipeList: '[]',
-      RecipesPerPage: 5,
-      Language: 'en'
+      Language: 'en',
     }
   },
   // placeholder to include additional Unified dependencies (not used here)
@@ -162,8 +137,17 @@ WebCC.start(
   // connection timeout
   10000
 );
+}
 
-console.log(WebCC)
+/**
+ * Same entry point the container's LoginMessage method uses, exposed so the
+ * control can be driven from the devtools console while running standalone:
+ *
+ *   LoginBridge.showLoginMessage(1, 3000)
+ */
+window.LoginBridge.showLoginMessage = function (messageNumber, timeout) {
+  bridgeMessage('LoginMessage', messageNumber, timeout);
+};
 
 /**
  * Fire a contract event.
@@ -175,9 +159,9 @@ console.log(WebCC)
  * Standalone (no container) is detected up front rather than caught, so a
  * genuine failure inside the container still reports itself.
  */
-window.RecipeBridge.fire = function (name, payload) {
+window.LoginBridge.fire = function (name, payload) {
   if (!window.WebCC || !WebCC.Events || !WebCC.Events.fire) {
-    console.log('[RecipeList] standalone: event ' + name + ' not fired', payload);
+    // console.log('[LoginPage] standalone: event ' + name + ' not fired', payload);
     return false;
   }
   return WebCC.Events.fire(name, payload);

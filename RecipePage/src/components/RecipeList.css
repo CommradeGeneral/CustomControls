@@ -214,6 +214,100 @@ button {
   padding-bottom: 24px;
 }
 
+/*
+ * The wait for rows, shown in place of the empty state. Sized like it so the
+ * cards area does not change height as one replaces the other, and matching
+ * the detail pane's own loading view so both waits look alike.
+ */
+.recipe-cards__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7em;
+  padding: 24px 8px;
+  text-align: center;
+}
+
+/* The same ring .loading-page__spinner uses, at the smaller size this panel
+   calls for. */
+.recipe-cards__spinner {
+  width: 1.8em;
+  height: 1.8em;
+  box-sizing: border-box;
+  border: 0.12em solid #e1e4e9;
+  border-top-color: #6b7280;
+  border-radius: 50%;
+  animation: recipe-cards-spin 800ms linear infinite;
+}
+
+@keyframes recipe-cards-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*
+ * Matches the guard the rest of the control uses. The ring still reads as a
+ * progress indicator when static, so it stays rather than being hidden - it
+ * simply stops moving.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .recipe-cards__spinner {
+    animation: none;
+  }
+}
+
+.recipe-cards__loading-text {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* The same red the card list uses for an inactive status and the detail page
+   for a failed delete, so a fault reads the same wherever it appears. */
+.recipe-cards__failed-icon {
+  color: #c73b3b;
+  font-size: 1.8em;
+}
+
+.recipe-cards__failed-text {
+  margin: 0;
+  max-width: 28ch;
+  color: #b4443a;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/*
+ * A button wearing a link's clothes: no border or fill, the accent blue the
+ * control uses for its other actions, underlined so it reads as operable
+ * rather than as more of the message above it.
+ */
+.recipe-cards__reload {
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 3px;
+  color: #2466c1;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.recipe-cards__reload:hover {
+  color: #1f57a6;
+  background: #2466c114;
+}
+
+/* The ring is drawn here rather than left to the default outline, which a
+   borderless control renders tight against the text. */
+.recipe-cards__reload:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #2466c166;
+}
+
 .recipe-cards__empty {
   margin: 0;
   padding: 24px 8px;

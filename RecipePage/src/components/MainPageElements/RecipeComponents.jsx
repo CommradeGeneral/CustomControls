@@ -12,7 +12,7 @@ const labels = {
     materialPlaceholder: 'Select material',
     codePlaceholder: 'Select code',
     remove: 'Remove component',
-    totalMaterials: 'Total Materials',
+    totalMaterials: 'Total Materials', totalQuantity: 'Total Quantity',
     empty: 'No components yet. Add one to begin.',
   },
   ar: {
@@ -23,47 +23,37 @@ const labels = {
     materialPlaceholder: 'اختر المادة',
     codePlaceholder: 'اختر الرمز',
     remove: 'حذف المكوّن',
-    totalMaterials: 'إجمالي المواد',
+    totalMaterials: 'إجمالي المواد', totalQuantity: 'إجمالي الكمية',
     empty: 'لا توجد مكونات بعد. أضف واحدًا للبدء.',
   },
 }
 
-// Built-in vocabulary, used until the container supplies one through
-// LoadAvailableMaterials. Each material carries the code the plant knows it by,
-// and a name per language. Paired here rather than kept in parallel lists, so a
-// name can never be shown against the wrong code.
-const TEMPLATE_MATERIALS = [
-  { code: 'MAT-1001', name: { en: 'Cement 1', ar: 'أسمنت 1' }, unit: 'kg' },
-  { code: 'MAT-1002', name: { en: 'Cement 2', ar: 'أسمنت 2' }, unit: 'kg' },
-  { code: 'MAT-2001', name: { en: 'Sand 1', ar: 'رمل 1' }, unit: 'kg' },
-  { code: 'MAT-2002', name: { en: 'Sand 2', ar: 'رمل 2' }, unit: 'kg' },
-  { code: 'MAT-3001', name: { en: 'Aggregate 1', ar: 'ركام 1' }, unit: 'kg' },
-  { code: 'MAT-3002', name: { en: 'Aggregate 2', ar: 'ركام 2' }, unit: 'kg' },
-  { code: 'MAT-4001', name: { en: 'Water', ar: 'ماء' }, unit: 'L' },
-  { code: 'MAT-5001', name: { en: 'Admixture', ar: 'إضافات' }, unit: 'L' },
-]
 
 /**
  * Normalize whatever the container sent into the shape above.
  *
  * recipe_material carries one `name` column rather than a name per language,
  * so a supplied row's name is used for both - translating plant material names
- * is the database's call, not something to invent here. The built-in list
- * keeps its bilingual names, which is why entries are only converted when they
- * are not already in that shape.
+ * is the database's call, not something to invent here. A name that already
+ * arrives as an {en, ar} pair is passed through, so a future bilingual source
+ * needs no change here.
  *
  * Rows without a usable code are dropped: the code is the row's identity, and
  * an entry that cannot be stored would be a dropdown option that does nothing.
+ *
+ * Empty until LoadAvailableMaterials has been called: offering a built-in list
+ * meant offering codes the database had never heard of, and a component naming
+ * one was dropped by the insert's join without an error.
  */
 const normalizeMaterials = (supplied) => {
-  if (!Array.isArray(supplied) || supplied.length === 0) return TEMPLATE_MATERIALS
+  if (!Array.isArray(supplied) || supplied.length === 0) return []
   const normalized = []
   for (const entry of supplied) {
     if (!entry || typeof entry !== 'object') continue
     const code = String(entry.code ?? entry.Code ?? '').trim()
     if (!code) continue
     const rawName = entry.name ?? entry.Name
-    // Already bilingual (the built-in shape) or a plain column value.
+    // Already bilingual, or a plain column value to be used for both.
     const name = rawName && typeof rawName === 'object'
       ? rawName
       : { en: String(rawName ?? code), ar: String(rawName ?? code) }
@@ -73,7 +63,7 @@ const normalizeMaterials = (supplied) => {
     const unit = String(entry.unit ?? entry.Unit ?? entry.uom ?? entry.UOM ?? '').trim()
     normalized.push({ code, name, unit })
   }
-  return normalized.length > 0 ? normalized : TEMPLATE_MATERIALS
+  return normalized
 }
 
 // The code is the stable identity; the displayed name is derived from it. A row
@@ -115,9 +105,9 @@ export const emptyComponent = () => ({
  */
 export function RecipeComponents({ language = 'en', materials = null, rows, onChange }) {
   const text = labels[language] ?? labels.en
-  // The container's catalogue when it has sent one, the built-in list until
-  // then. Memoized so the two dropdowns are not handed a fresh array on every
-  // keystroke in the quantity field.
+  // The container's catalogue, empty until LoadAvailableMaterials has been
+  // called. Memoized so the two dropdowns are not handed a fresh array on
+  // every keystroke in the quantity field.
   const catalogue = useMemo(() => normalizeMaterials(materials), [materials])
   // Option labels in the active language, and the matcher that lets a material
   // be found by its code as well as by that label.
@@ -142,6 +132,16 @@ export function RecipeComponents({ language = 'en', materials = null, rows, onCh
 
   const addRow = () => onChange([...rows, emptyComponent()])
   const removeRow = (key) => onChange(rows.filter((row) => row.key !== key))
+
+  // Blank and non-numeric entries contribute nothing rather than poisoning the
+  // sum with NaN, so the total stays readable while a row is still being typed.
+  //
+  // Rounded because adding decimals gives values like 2349.9999999999995,
+  // which reads as noise rather than as a quantity.
+  const totalQuantity = Math.round(rows.reduce((sum, row) => {
+    const value = Number(row.quantity)
+    return Number.isFinite(value) ? sum + value : sum
+  }, 0) * 1000) / 1000
 
   return (
     <div className="components">
@@ -245,6 +245,7 @@ export function RecipeComponents({ language = 'en', materials = null, rows, onCh
 
       <div className="components__totals">
         <span>{text.totalMaterials}: <strong>{rows.length}</strong></span>
+        <span>{text.totalQuantity}: <strong dir="ltr">{totalQuantity}</strong></span>
       </div>
     </div>
   )

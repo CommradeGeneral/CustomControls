@@ -32,7 +32,7 @@
                 "type": "string"
               }
             },
-            "description": "Supply the recipe rows the cards are built from, as a JSON array of recipe_header rows. A numbered-key object and a real array are accepted too, since marshalling an array across the boundary may deliver either. A malformed payload is refused and leaves the current cards alone. Note this only delivers the rows: while the showTemplate property is on, the built-in demo rows keep rendering and these are held."
+            "description": "Supply the recipe rows the cards are built from, as a JSON array of recipe_header rows. A numbered-key object and a real array are accepted too, since marshalling an array across the boundary may deliver either. A malformed payload is refused and leaves the current cards alone."
           },
           "CreateRecipePage": {
             "parameters": {
@@ -48,7 +48,7 @@
                 "type": "string"
               }
             },
-            "description": "Supply the materials a recipe component can be chosen from, as a JSON array of recipe_material rows. Each row needs at least a code and a name; the unit column is shown beside the quantity when present. Accepts the same payload spellings as CreateCards and refuses a malformed one. Until this is called, the form offers a small built-in material list."
+            "description": "Supply the materials a recipe component can be chosen from, as a JSON array of recipe_material rows. Each row needs at least a code and a name; the unit column is shown beside the quantity when present. Accepts the same payload spellings as CreateCards and refuses a malformed one. Until this is called the component dropdowns are empty, so a recipe cannot be given a material the plant does not stock."
           },
           "NewRecipeMessage": {
             "parameters": {
@@ -75,6 +75,14 @@
           "ClearSidePage": {
             "parameters": {},
             "description": "Return the main pane to its empty state, dropping whichever of the recipe detail view or the new-recipe form is showing and discarding an unsaved draft. Also clears the card selection, so onCardSelect fires with an empty string if a row was selected."
+          },
+          "LoadingCardsMessage": {
+            "parameters": {
+              "MessageNumber": {
+                "type": "number"
+              }
+            },
+            "description": "Say what the recipe list shows while CreateCards has not delivered rows: 1 shows a loading placeholder, 2 a 'failed to load' notice, and any other number clears both. CreateCards also clears it on arrival, so a container that always follows one with the other need never send 0. The cards underneath are kept rather than cleared, so neither a refresh nor a failed one blanks a list that already has rows."
           }
         },
         "events": {
@@ -114,6 +122,10 @@
             "arguments": {},
             "description": "Fires when the operator presses the New Recipe button. The control opens the form itself, so nothing has to be sent back; this exists so the container can react - loading the material catalogue for the component step, for instance."
           },
+          "onReloadCards": {
+            "arguments": {},
+            "description": "Fires when the operator presses the reload link on the recipe list's 'failed to load' notice. The control retries nothing itself: it only reports that a retry was asked for, so the container runs the same query it would on first load - raising LoadingCardsMessage(1) again, then CreateCards or LoadingCardsMessage(2)."
+          },
           "onSidePageChange": {
             "arguments": {
               "page": {
@@ -142,11 +154,6 @@
             "default": 5,
             "minimum": 1,
             "description": "How many recipe cards one page of the list holds. Values below 1 are ignored. The control reports an operator's change through onRecipeItemsPerPageChange rather than applying it directly, so this property stays the single source of the value."
-          },
-          "showTemplate": {
-            "type": "boolean",
-            "default": true,
-            "description": "Whether the built-in demo recipes are shown while the container has supplied none. True renders the sample cards, which is useful during engineering; false leaves the list empty until CreateCards delivers real rows. Once rows have been supplied they are shown regardless of this flag."
           }
         }
       }

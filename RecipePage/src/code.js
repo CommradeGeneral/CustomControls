@@ -13,25 +13,28 @@ window.RecipeBridge = {
   settled: false,
   language: 'en',
   recipeItemsPerPage: 5,
-  showTemplate: true,
   // Rows supplied by the container through CreateCards. Null means "never
-  // supplied", which is distinct from an empty array: empty is a real result
-  // that renders no cards, null lets the template stand in.
+  // supplied" and an empty array a real result with nothing in it; both render
+  // no cards, but the two mean different things to a reader.
   recipes: null,
-  // Material catalogue supplied through LoadAvailableMaterials. Null means
-  // "never supplied", which is distinct from an empty array: empty is a real
-  // result that offers nothing to pick, null lets the built-in list stand in.
+  // Material catalogue supplied through LoadAvailableMaterials. Until it
+  // arrives the component dropdowns have nothing to offer, so a recipe cannot
+  // be given a material the plant does not stock.
   materials: null,
   // The recipe the detail page is showing, supplied through CreateRecipePage.
   // Null means no page is open, which is distinct from an empty object.
   recipePage: null,
+  // What the card list shows in place of its rows, set through
+  // LoadingCardsMessage: 1 while the query behind CreateCards runs, 2 when it
+  // failed, 0 for neither.
+  loadingCards: 0,
   pending: [],
   onLanguage: null,
   onRecipeItemsPerPage: null,
-  onShowTemplate: null,
   onRecipes: null,
   onMaterials: null,
   onRecipePage: null,
+  onLoadingCards: null,
   onNewRecipeMessage: null,
   onDeleteRecipeMessage: null,
   onClearSidePage: null,
@@ -141,7 +144,35 @@ function bridgeAcceptRows(label, field, kind, data) {
  * in a plain browser exercises the same validation the container hits.
  */
 function bridgeCreateCards(data) {
-  return bridgeAcceptRows('CreateCards', 'recipes', 'Recipes', data);
+  var accepted = bridgeAcceptRows('CreateCards', 'recipes', 'Recipes', data);
+  // Rows arriving are the end of the wait, so the placeholder clears itself.
+  // A container that always pairs the two never has to send 0, and one that
+  // forgets cannot leave the list stuck under it.
+  if (accepted) bridgeLoadingCards(0);
+  return accepted;
+}
+
+/**
+ * Set what the card list shows in place of its rows: 1 is the loading
+ * placeholder, 2 the failure notice, anything else clears both.
+ *
+ * Carried as the number itself rather than a flag, so the three states stay
+ * distinct - a failure is not "not loading", and collapsing them would leave
+ * the list looking merely empty after a query that actually broke.
+ *
+ * Lives on the bridge rather than only inside the contract object, for the
+ * same reason as the others: the contract is registered by WebCC.start, which
+ * never runs standalone, so routing through here keeps a console call and a
+ * container call on the same path.
+ */
+function bridgeLoadingCards(MessageNumber) {
+  var code = Number(MessageNumber);
+  if (code !== 1 && code !== 2) code = 0;
+  window.RecipeBridge.loadingCards = code;
+  bridgeDispatch('LoadingCards', code);
+  setStatus('LoadingCardsMessage: ' +
+    (code === 1 ? 'loading' : code === 2 ? 'failed' : 'cleared'));
+  return true;
 }
 
 /**
@@ -250,10 +281,8 @@ WebCC.start(
         if (props) {
           window.RecipeBridge.language = props.Language;
           window.RecipeBridge.recipeItemsPerPage = props.RecipeItemsPerPage;
-          window.RecipeBridge.showTemplate = props.showTemplate;
           bridgeDispatch('Language', props.Language);
           bridgeDispatch('RecipeItemsPerPage', props.RecipeItemsPerPage);
-          bridgeDispatch('ShowTemplate', props.showTemplate);
         }
       } catch (e) {
         console.warn('[RecipePage] property read failed:', e);
@@ -265,10 +294,6 @@ WebCC.start(
             case 'Language':
               window.RecipeBridge.language = val.value;
               bridgeDispatch('Language', val.value);
-              break;
-            case 'showTemplate':
-              window.RecipeBridge.showTemplate = val.value;
-              bridgeDispatch('ShowTemplate', val.value);
               break;
             case 'RecipeItemsPerPage':
               // manifest declares minimum 1; drop anything the container
@@ -312,13 +337,24 @@ WebCC.start(
        * to either of the other two. Anything else is rejected here rather than
        * forwarded, so a malformed payload leaves the current cards alone
        * instead of blanking the list.
-       *
-       * Note this only delivers the rows. Whether they are displayed is the
-       * showTemplate property's call: while it is on, the template keeps
-       * rendering and these are held.
        */
       CreateCards: function (data) {
         bridgeCreateCards(data);
+      },
+
+      /**
+       * Say what the card list shows in place of its rows while CreateCards
+       * has not delivered any: 1 is the loading placeholder, 2 the failure
+       * notice, and any other number clears both.
+       *
+       * The cards underneath are kept rather than cleared, so refreshing an
+       * already-populated list does not blank it before the new rows land -
+       * and a failed refresh leaves the last good rows on screen rather than
+       * replacing them with an error.
+       */
+      LoadingCardsMessage: function (MessageNumber) {
+        // console.log('[RecipePage] LoadingCardsMessage called with', MessageNumber);
+        bridgeLoadingCards(MessageNumber);
       },
 
       /**
@@ -398,11 +434,10 @@ WebCC.start(
         bridgeDispatch('ClearSidePage', Date.now());
       }
     },
-    events: ['onCardSelect', 'onRecipeCreate', 'onRecipeDelete', 'onRecipeUpdate', 'onNewRecipeButton', 'onSidePageChange', 'onRecipeItemsPerPageChange'],
+    events: ['onCardSelect', 'onRecipeCreate', 'onRecipeDelete', 'onRecipeUpdate', 'onNewRecipeButton', 'onReloadCards', 'onSidePageChange', 'onRecipeItemsPerPageChange'],
     properties: {
       Language: 'en',
           RecipeItemsPerPage: 5,
-      showTemplate: true
     }
   },
   // placeholder to include additional Unified dependencies (not used here)
@@ -438,6 +473,9 @@ window.RecipeBridge.loadAvailableMaterials = bridgeLoadAvailableMaterials;
 
 /** Same, for the detail page: RecipeBridge.createRecipePage(payload) */
 window.RecipeBridge.createRecipePage = bridgeCreateRecipePage;
+
+/** Same, for the list placeholder: RecipeBridge.loadingCards(1) */
+window.RecipeBridge.showLoadingCards = bridgeLoadingCards;
 
 window.RecipeBridge.fire = function (name, payload) {
   if (!window.WebCC || !WebCC.Events || !WebCC.Events.fire) {
