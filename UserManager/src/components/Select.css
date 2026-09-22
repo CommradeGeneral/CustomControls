@@ -1,0 +1,216 @@
+/*
+ * A listbox built from ordinary elements, so the page controls its
+ * appearance - which a native select's OS-drawn popup does not allow.
+ *
+ * Sized in em throughout, so it scales with whatever font-size the field
+ * around it sets. That is the whole point of replacing the native control:
+ * the list now inherits from the page rather than from the document root.
+ *
+ * position: relative anchors the popup, which is absolutely placed.
+ */
+.select {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+}
+
+/*
+ * The closed control, matching .owned-users__row-input so it sits in the row
+ * as one field among several rather than as a button dropped into it.
+ *
+ * The gradient is barely there - two steps of near-white - but it is what
+ * stops the control reading as flat beside the inputs, which are genuinely
+ * flat and should stay so.
+ */
+.select__button {
+  display: flex;
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4em;
+  border: 1px solid #d5dae1;
+  border-radius: 3px;
+  padding: 0.35em 0.5em;
+  color: #27303d;
+  background: linear-gradient(#fff, #fafbfd);
+  font-family: inherit;
+  font-size: 0.8em;
+  line-height: 1.4;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.select__button:hover:not(:disabled) {
+  border-color: #b9c5d6;
+  background: linear-gradient(#fff, #f5f8fc);
+}
+
+/*
+ * Focus and open share a treatment: a soft accent ring rather than a hard
+ * outline, so it sits with the row's other fields instead of shouting over
+ * them. The ring is a shadow, so it costs no layout and cannot shift the row.
+ */
+.select__button:focus-visible,
+.select__button--open {
+  border-color: #5e91d2;
+  background: #fff;
+  box-shadow: 0 0 0 3px #5e91d229;
+  outline: none;
+}
+
+.select__button:disabled {
+  color: #9aa3b0;
+  background: #f7f8fa;
+  cursor: default;
+}
+
+/* Truncates rather than widening the field, which would push the row's
+   other fields out of alignment. */
+.select__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select__caret {
+  flex-shrink: 0;
+  color: #9aa3b0;
+  transition: transform 180ms cubic-bezier(0.2, 0, 0.2, 1), color 140ms ease;
+}
+
+.select__button:hover:not(:disabled) .select__caret {
+  color: #6b7280;
+}
+
+/* Points at the open list, so the control says which way it is. */
+.select__button--open .select__caret {
+  color: #2466c1;
+  transform: rotate(180deg);
+}
+
+/*
+ * The popup.
+ *
+ * Absolutely placed and z-indexed above the row, so it overlays whatever
+ * follows instead of pushing the layout down as it opens.
+ *
+ * The font-size is set here rather than inherited from the button, because
+ * the button's own 0.8em would compound: an em on a child of a 0.8em parent
+ * is 0.8 of that again, and the list would come up smaller than the control
+ * that opened it.
+ *
+ * Two shadows rather than one: a tight dark edge that separates it from the
+ * field beneath, and a wide soft fall that gives it height above the row.
+ */
+.select__list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  overflow-y: auto;
+  inset-inline: 0;
+  max-height: 12em;
+  margin: 0;
+  border: 1px solid #d5dae1;
+  border-radius: 5px;
+  padding: 0.25em;
+  list-style: none;
+  background: #fff;
+  box-shadow: 0 1px 2px #27303d1f, 0 10px 24px -6px #27303d33;
+  font-size: 0.8em;
+  transform-origin: top center;
+  animation: select-open 150ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+/*
+ * Rises and settles rather than simply appearing: the list belongs to the
+ * control above it, and moving out of it is what says so.
+ */
+@keyframes select-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.select__list:focus {
+  outline: none;
+}
+
+/*
+ * Each option carries a fixed gutter for the tick, so the labels line up
+ * whether or not a row is the selected one - without it the text would shift
+ * sideways as the selection moved.
+ */
+.select__option {
+  display: flex;
+  position: relative;
+  align-items: center;
+  gap: 0.4em;
+  border-radius: 3px;
+  padding: 0.45em 0.55em 0.45em 1.7em;
+  color: #34445a;
+  line-height: 1.4;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+/* The gutter is on the leading edge, so it follows the reading direction. */
+.select:dir(rtl) .select__option {
+  padding-right: 1.7em;
+  padding-left: 0.55em;
+}
+
+/*
+ * The keyboard highlight. Distinct from the selection: one says "this is what
+ * you would choose", the other "this is what is chosen", and while arrowing
+ * through the list both are visible at once.
+ */
+.select__option--active {
+  color: #27303d;
+  background: #eef4fd;
+}
+
+.select__option--selected {
+  color: #2466c1;
+  font-weight: 700;
+}
+
+/*
+ * The tick, drawn rather than imported: two borders on a rotated box, which
+ * costs no icon and scales with the text beside it.
+ */
+.select__option--selected::before {
+  position: absolute;
+  inset-inline-start: 0.6em;
+  width: 0.3em;
+  height: 0.55em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  content: '';
+  transform: translateY(-0.1em) rotate(45deg);
+}
+
+.select__option--selected.select__option--active {
+  background: #dfeafb;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .select__button,
+  .select__caret,
+  .select__option {
+    transition: none;
+  }
+
+  .select__list {
+    animation: none;
+  }
+}

@@ -1,0 +1,36 @@
+/*
+ * The control's shell: a tab strip with the open section filling the rest.
+ *
+ * A column rather than the side-by-side pair this started as. The two sections
+ * are alternatives, not halves of one view - only one is on screen at a time -
+ * so they occupy the same space and the strip above says which.
+ *
+ * Held here rather than as inline styles on the elements, so the layout can be
+ * read in one place and App stays a description of which sections exist.
+ */
+/*
+ * No padding: the tab strip runs edge to edge, so a gutter here would leave
+ * the first tab floating short of the control's edge instead of meeting it.
+ * The sections inside supply their own inset.
+ */
+.main-container {
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+/*
+ * The chain html -> body -> #root -> here must pass its height down intact for
+ * a section to fill the pane and scroll inside itself. min-height: 0 is the
+ * link that is easy to miss: a flex child defaults to min-height: auto, which
+ * refuses to shrink below its content, so an overflowing list would stretch
+ * the control and put the scrollbar on the WinCC iframe instead of in the
+ * section where it belongs.
+ */
+.main-container > * {
+  min-height: 0;
+}

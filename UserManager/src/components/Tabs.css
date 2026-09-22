@@ -1,0 +1,217 @@
+/*
+ * The tab strip and the panel under it.
+ *
+ * Segmented rather than underlined: the tabs are equal blocks filling the
+ * strip's whole width with no gutter at either end, the unselected ones
+ * recessed into a grey band and the selected one raised as a white block that
+ * merges into the panel below.
+ *
+ * Palette is the one the rest of the control uses - #27303d text, #6b7280
+ * muted, #d5dae1 borders - so the strip reads as part of the same control
+ * rather than a bar bolted on top.
+ */
+/*
+ * Segmented tabs: the strip is divided into equal blocks that fill the width,
+ * with no gutter at either end. The unselected tabs are a recessed grey band
+ * and the selected one is a raised white block that merges into the panel
+ * below it, so the pair reads as one sheet with a notch cut out of it rather
+ * than as two separate surfaces.
+ *
+ * The grey band is the strip's own background rather than a fill on each tab,
+ * so the tabs sit in it instead of floating on it - which is what makes the
+ * unselected ones read as recessed.
+ *
+ * position: relative establishes the stacking context the selected tab uses to
+ * cover the strip's bottom border.
+ */
+.tabs {
+  display: flex;
+  position: relative;
+  flex: 0 0 auto;
+  /* The tabs define the strip's height rather than being stretched to it:
+     align-items defaults to stretch, which would make every tab as tall as
+     the tallest and leave the selected block's white edge floating above the
+     panel instead of meeting it. */
+  align-items: flex-end;
+  border-bottom: 1px solid #d5dae1;
+  background: #eceff3;
+  /* The document root is 22px, and the strip would otherwise reserve a line
+     box of that height around tabs set at 0.8em - which is the band that
+     appeared between the strip and the panel. Zeroing it here makes the
+     tabs the only thing contributing height; each tab sets its own. */
+  line-height: 0;
+}
+
+/*
+ * Sized to its label, not to a share of the strip: the tabs sit together at
+ * the leading edge and the rest of the band stays empty, rather than two tabs
+ * stretching across the whole control.
+ *
+ * flex-grow is 0 for that reason; flex-shrink stays 1 with min-width: 0 so a
+ * long label ellipsizes at a narrow width instead of forcing the strip wider
+ * than the control.
+ */
+.tabs__tab {
+  display: inline-flex;
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  /* Separators between the blocks, drawn on the inline-start edge so they fall
+     between tabs and not at the strip's outer edges. Logical, so they follow
+     the reading direction under RTL. */
+  border: none;
+  border-inline-start: 1px solid #d5dae1;
+  /* The bottom is transparent rather than absent, so selecting a tab swaps the
+     colour in place instead of changing its height and shifting the strip. */
+  border-bottom: 1px solid transparent;
+  padding: 0.75em 0.8em;
+  color: #6b7280;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8em;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+/* No separator before the first block: it would sit on the container's edge
+   and read as a stray line rather than as a division between tabs. */
+.tabs__tab:first-child {
+  border-inline-start-color: transparent;
+}
+
+/* A long label ellipsizes rather than wrapping, which would make one tab
+   taller than its neighbour and misalign the strip. */
+.tabs__tab > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tabs__tab:hover:not(.tabs__tab--selected):not(.tabs__tab--disabled) {
+  color: #34445a;
+  background: #e2e6ec;
+}
+
+/*
+ * The focus ring is drawn inside the tab: an outline would be clipped by the
+ * strip's bottom border on the selected tab, so it is inset rather than
+ * surrounding.
+ */
+.tabs__tab:focus-visible {
+  outline: 2px solid #5e91d2;
+  outline-offset: -3px;
+}
+
+/*
+ * The selected block: white, and lifted out of the grey band.
+ *
+ * The 1px downward shift is what merges it into the panel. The strip carries a
+ * bottom border, and this sits one pixel over it with a matching white
+ * background, so the border is covered for exactly this tab's width - leaving
+ * the notch that makes the tab and the panel read as one continuous surface.
+ * z-index puts it above the neighbouring separators, which would otherwise
+ * draw over its edges.
+ *
+ * The height is unchanged: the shift is absorbed by the transparent bottom
+ * border every tab already carries, so the strip does not move when the
+ * selection changes.
+ */
+.tabs__tab--selected {
+  z-index: 1;
+  border-inline-start-color: transparent;
+  border-bottom-color: #fff;
+  margin-bottom: -1px;
+  color: #27303d;
+  background: #fff;
+  font-weight: 700;
+}
+
+/* The separator belonging to the tab *after* the selected one would butt
+   against its white edge, so it is dropped too. */
+.tabs__tab--selected + .tabs__tab {
+  border-inline-start-color: transparent;
+}
+
+/*
+ * Unavailable, but still present: the operator can see the section exists.
+ *
+ * Kept focusable (aria-disabled, not the disabled attribute), so the focus
+ * ring above still applies and a keyboard user can reach it to hear why.
+ */
+.tabs__tab--disabled {
+  color: #b9c0ca;
+  cursor: not-allowed;
+}
+
+/* Left in the recessed band with no hover response, so nothing about it
+   suggests it is about to do something. */
+.tabs__tab--disabled:hover {
+  color: #b9c0ca;
+  background: transparent;
+}
+
+/* A locked tab that is somehow also the selection must not be drawn as the
+   raised white block - it would look open. This cannot happen while App
+   overrides the section, and is stated so the two rules cannot disagree. */
+.tabs__tab--disabled.tabs__tab--selected {
+  z-index: 0;
+  border-bottom-color: transparent;
+  margin-bottom: 0;
+  color: #b9c0ca;
+  background: transparent;
+}
+
+.tabs__tab svg {
+  flex-shrink: 0;
+}
+
+/*
+ * Visually hidden, still announced. Carries the reason a tab is unavailable
+ * for a screen reader, since the greying and the lock icon convey it only to
+ * someone who can see them.
+ */
+.tabs .sr-only {
+  position: absolute;
+  overflow: hidden;
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabs__tab {
+    transition: none;
+  }
+}
+
+/*
+ * The panel fills whatever the strip leaves.
+ *
+ * min-height: 0 is what lets a scrolling section inside it actually scroll:
+ * without it the panel grows to its content instead, and the scrollbar appears
+ * on the page rather than in the section.
+ */
+/*
+ * No padding: the panel's own surface continues the white of the selected tab,
+ * so a gutter here would break the join the tab's covered border creates. The
+ * sections inside supply their own inset.
+ */
+.tabs__panel {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  background: #fff;
+}
+
+/* The panel is focusable so tabbing out of the strip lands in it; it is a
+   target rather than something to outline. */
+.tabs__panel:focus {
+  outline: none;
+}

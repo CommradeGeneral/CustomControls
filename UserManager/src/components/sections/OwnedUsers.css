@@ -1,0 +1,488 @@
+/*
+ * The owned-users section.
+ *
+ * Flat, for the same reason as the change-password section beside it: it fills
+ * the tab panel and continues the selected tab's white, so a card outline here
+ * would draw a second edge just inside the first.
+ */
+.owned-users {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 1em;
+  padding: 1.4em;
+  background: #fff;
+}
+
+.owned-users__header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  gap: 0.6em;
+}
+
+/* Takes the room the button does not, so a long hint wraps inside the header
+   rather than pushing the button off the end. */
+.owned-users__titles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Driven by font-size rather than the component's size attribute, which lucide
+   renders as fixed px: the icon is passed size="1em" so this rule scales it. */
+.owned-users__icon {
+  flex-shrink: 0;
+  margin-top: 0.1em;
+  color: #b9c0ca;
+  font-size: 1.6em;
+}
+
+.owned-users__heading {
+  margin: 0;
+  color: #34445a;
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+.owned-users__hint {
+  margin: 0.15em 0 0;
+  color: #6b7280;
+  font-size: 0.8em;
+  line-height: 1.45;
+}
+
+/*
+ * The section's primary action, matching the change-password button so a
+ * primary action reads as the same family of emphasis wherever it appears.
+ *
+ * flex-shrink: 0 keeps the label intact at a narrow width: the titles beside
+ * it give way instead, since a truncated "Add user" would be worse than a
+ * wrapped hint.
+ */
+.owned-users__add {
+  display: inline-flex;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 0.35em;
+  align-self: center;
+  border: 1px solid #2466c1;
+  border-radius: 4px;
+  padding: 0.4em 0.9em;
+  color: #fff;
+  background: #2e6dcc;
+  box-shadow: 0 1px 2px #27303d14;
+  font-family: inherit;
+  font-size: 0.8em;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.owned-users__add:hover:not(:disabled),
+.owned-users__add:focus-visible:not(:disabled) {
+  border-color: #1d56a6;
+  background: #2461b6;
+  outline: none;
+}
+
+.owned-users__add:disabled {
+  border-color: #e1e4e9;
+  color: #9aa3b0;
+  background: #f7f8fa;
+  box-shadow: none;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .owned-users__add {
+    transition: none;
+  }
+}
+
+/*
+ * The draft row for a new account.
+ *
+ * Sits where the accounts will be and carries a tinted surface with an accent
+ * edge, so it reads as a row being composed rather than as one that exists.
+ * The accent is the same blue the section's action uses, which is what ties
+ * the row to the button that opened it.
+ */
+.owned-users__row {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0.4em;
+  border: 1px solid #c8d8ef;
+  border-inline-start: 3px solid #2466c1;
+  border-radius: 4px;
+  padding: 0.7em 0.9em;
+  background: #f7faff;
+}
+
+/*
+ * The fields in one line, wrapping to a second at a narrow width rather than
+ * scrolling. The actions keep their place at the end of whichever line they
+ * land on.
+ */
+.owned-users__row-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5em 0.7em;
+}
+
+/*
+ * Each field grows to share the row, with a basis wide enough that a username
+ * and a password do not end up in a column two characters wide before the row
+ * decides to wrap.
+ */
+.owned-users__row-field {
+  display: flex;
+  flex: 1 1 9em;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.2em;
+}
+
+/*
+ * The password pair, kept together as one unit in the wrapping row.
+ *
+ * nowrap is the point: the two halves stay on the same line as each other
+ * whatever the row does around them, so they are always read side by side and
+ * a mismatch is visible in one glance.
+ *
+ * The basis is twice a single field's, so the pair occupies the space two
+ * fields would and the labels above it line up with the ones beside it.
+ */
+.owned-users__row-pair {
+  display: flex;
+  flex: 1 1 18em;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 0.7em;
+}
+
+/* Inside the pair the two fields share the space equally, so the confirmation
+   is exactly as wide as the password it repeats - an uneven pair reads as two
+   unrelated fields. */
+.owned-users__row-pair > .owned-users__row-field {
+  flex: 1 1 0;
+}
+
+.owned-users__row-label {
+  color: #6b7280;
+  font-size: 0.68em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.owned-users__row-input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #d5dae1;
+  border-radius: 3px;
+  padding: 0.35em 0.5em;
+  color: #27303d;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.8em;
+  line-height: 1.4;
+}
+
+.owned-users__row-input:focus {
+  border-color: #5e91d2;
+  outline: none;
+}
+
+.owned-users__row-input::placeholder {
+  color: #b9c0ca;
+}
+
+/* The same red the control's other field errors use. */
+.owned-users__row-input--invalid,
+.owned-users__row-input--invalid:focus {
+  border-color: #c73b3b;
+}
+
+/* Narrower than the text fields: the three labels are short, and giving it an
+   equal share would leave it mostly empty while the username was cramped. */
+.owned-users__row-field--role {
+  flex: 0 1 8em;
+}
+
+/* Pinned to the end of the row and never shrinking, so the two controls stay
+   the same size however the fields divide the space. */
+.owned-users__row-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.3em;
+}
+
+.owned-users__row-button {
+  display: grid;
+  box-sizing: border-box;
+  width: 2em;
+  height: 2em;
+  place-items: center;
+  border: 1px solid #d5dae1;
+  border-radius: 3px;
+  padding: 0;
+  color: #6b7280;
+  background: #fff;
+  font-size: 0.8em;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+}
+
+.owned-users__row-button:hover:not(:disabled),
+.owned-users__row-button:focus-visible:not(:disabled) {
+  border-color: #b9c0ca;
+  color: #34445a;
+  background: #f7f8fa;
+  outline: none;
+}
+
+/* The confirming half of the pair, so it carries the accent rather than
+   sitting identical to the control that discards the row. */
+.owned-users__row-button--confirm {
+  border-color: #2466c1;
+  color: #fff;
+  background: #2e6dcc;
+}
+
+.owned-users__row-button--confirm:hover:not(:disabled),
+.owned-users__row-button--confirm:focus-visible:not(:disabled) {
+  border-color: #1d56a6;
+  color: #fff;
+  background: #2461b6;
+}
+
+.owned-users__row-button:disabled {
+  border-color: #e1e4e9;
+  color: #b9c0ca;
+  background: #f7f8fa;
+  cursor: default;
+}
+
+/* Muted: it explains the state of the row rather than being part of it. */
+.owned-users__row-note {
+  margin: 0;
+  color: #9aa3b0;
+  font-size: 0.7em;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* The same green the control's other success lines use, so the two ways it
+   reports a success agree with each other. */
+.owned-users__row-note--ok {
+  color: #21834a;
+  font-style: normal;
+  font-weight: 600;
+}
+
+/*
+ * A mismatch is the operator's to fix, not a description of the row's state,
+ * so it is stated plainly in the error red rather than murmured in grey.
+ */
+.owned-users__row-note--error {
+  color: #b4443a;
+  font-style: normal;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .owned-users__row-button {
+    transition: none;
+  }
+}
+
+/*
+ * The body takes the remaining height and is where ItemList goes.
+ *
+ * min-height: 0 is what will let that list scroll rather than growing the
+ * section: a flex child's default min-height is auto, which refuses to shrink
+ * below its content and pushes the overflow onto the page instead.
+ */
+.owned-users__body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  /* Separates the add row from the list beneath it. Once ItemList is here the
+     same gap sits between the row and the first account. */
+  gap: 0.6em;
+}
+
+/*
+ * The list's three non-row states - loading, failed and empty - share one
+ * block, so the section keeps the same shape whichever is showing and does
+ * not resize as one replaces another.
+ */
+.owned-users__state {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  border: 1px dashed #e1e4e9;
+  border-radius: 4px;
+  padding: 1.2em;
+  text-align: center;
+}
+
+.owned-users__state-title {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9em;
+  font-weight: 700;
+}
+
+.owned-users__state-hint {
+  margin: 0;
+  max-width: 34ch;
+  color: #9aa3b0;
+  font-size: 0.78em;
+  line-height: 1.45;
+}
+
+.owned-users__state-icon {
+  color: #c73b3b;
+  font-size: 1.6em;
+}
+
+/*
+ * The wait. A ring with one coloured quarter, rotated - no image, and it
+ * scales with the font around it.
+ */
+.owned-users__spinner {
+  width: 1.6em;
+  height: 1.6em;
+  border: 2px solid #e1e4e9;
+  border-top-color: #2466c1;
+  border-radius: 50%;
+  animation: owned-users-spin 700ms linear infinite;
+}
+
+@keyframes owned-users-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A button styled as a link: there is nowhere to navigate to, and an anchor
+   with href="#" would be operable by keyboard only by accident. */
+.owned-users__reload {
+  margin-top: 0.3em;
+  border: none;
+  padding: 0.2em 0.4em;
+  color: #2466c1;
+  background: none;
+  font: inherit;
+  font-size: 0.78em;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.owned-users__reload:hover,
+.owned-users__reload:focus-visible {
+  color: #1d56a6;
+  outline: none;
+}
+
+/*
+ * The accounts themselves. Scrolls inside the section rather than growing it,
+ * which is what min-height: 0 on the body makes possible.
+ */
+.owned-users__list {
+  overflow-y: auto;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.3em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owned-users__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3em 0.8em;
+  border: 1px solid #e1e4e9;
+  border-radius: 4px;
+  padding: 0.55em 0.8em;
+  background: #fff;
+}
+
+.owned-users__item-main {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5em;
+}
+
+.owned-users__item-name {
+  color: #27303d;
+  font-size: 0.85em;
+  font-weight: 700;
+}
+
+.owned-users__item-display {
+  color: #6b7280;
+  font-size: 0.78em;
+}
+
+.owned-users__item-meta {
+  display: flex;
+  flex-shrink: 0;
+  align-items: baseline;
+  gap: 0.7em;
+}
+
+.owned-users__item-role {
+  color: #2466c1;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.owned-users__item-date {
+  color: #9aa3b0;
+  font-size: 0.72em;
+}
+
+/* The same green and red the control uses for the same two states elsewhere. */
+.owned-users__item-status {
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: #21834a;
+  background: #dff5e7;
+  font-size: 0.68em;
+  line-height: 1.5;
+}
+
+.owned-users__item-status--inactive {
+  color: #c73b3b;
+  background: #ffe1e1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .owned-users__spinner {
+    animation-duration: 2s;
+  }
+}

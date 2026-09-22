@@ -1,0 +1,113 @@
+{
+  "mver": "1.2.0",
+  "control": {
+    "identity": {
+      "name": "UserManager",
+      "version": "1.0",
+      "displayname": "UserManager",
+      "icon": "./control/icons.png",
+      "type": "guid://4C6A3998-102B-4473-923B-80343BC6AD7F",
+      "start": "./control/index.html"
+    },
+    "metadata": {
+      "author": "Siemens",
+      "keywords": [
+        "UserManager"
+      ]
+    },
+    "contracts": {
+      "api": {
+        "methods": {
+          "Print": {
+            "parameters": {
+              "data": {
+                "type": "string"
+              }
+            },
+            "description": "Write a diagnostic message to the control's console and status line. Exists to prove the container -> control direction of the contract is wired, which is the half a fired event cannot demonstrate."
+          },
+          "ChangePasswordMessage": {
+            "parameters": {
+              "MessageNumber": {
+                "type": "number"
+              },
+              "Timeout": {
+                "type": "number"
+              }
+            },
+            "description": "Report the outcome of a change-password attempt: 0 = the password was changed, which clears the form and shows a success line, 1 = the current password was wrong, 2 = the new password was rejected by policy, and 3 = it could not be written to the database. Any other number clears the message. Until this arrives the form stays in its pending state, which is what stops a second submit while the first is still being written. Timeout is in milliseconds and zero or less leaves the result on screen until the operator edits the form."
+          },
+          "AddUserMessage": {
+            "parameters": {
+              "MessageNumber": {
+                "type": "number"
+              },
+              "Timeout": {
+                "type": "number"
+              }
+            },
+            "description": "Report the outcome of a create attempt: 0 = the account was created, which closes the draft row, 1 = the username is already taken, 2 = the password was rejected by policy, 3 = the database refused or could not be reached, and 4 = the request itself was rejected, which is what the container sends when the role asked for is not one it will grant. Any other number clears the message. 3 and 4 are kept apart because they mean different things to the operator: a database error is worth retrying and a refused request is not. Until this arrives the row stays in its pending state, which is what stops a second submit while the first is still being written. Timeout is in milliseconds and zero or less leaves the result on screen until the operator edits the row."
+          },
+          "LoadUsers": {
+            "parameters": {
+              "MessageNumber": {
+                "type": "number"
+              },
+              "Timeout": {
+                "type": "number"
+              },
+              "Payload": {
+                "type": "string"
+              }
+            },
+            "description": "Answer the onPressUserTab request with the accounts to list. 0 means the rows follow in Payload, as a JSON array of dbo.users rows - each needs at least a username, and display_name, role, is_active and last_login_at are shown when present. An empty array is a valid answer that lists nothing, which is different from never answering. 1 = the database could not be reached, 2 = this operator may not list accounts, and any other number is an unspecified failure. Until this arrives the section shows a loading state, so a container that never answers leaves it waiting: send a failure rather than staying silent. Payload is ignored for every code but 0, and one that is not a JSON array is refused and reported as a failure rather than emptying a list that already has rows. Timeout is in milliseconds and applies to the failure notices only, since rows stay until they are replaced; zero or less leaves a failure on screen until the operator retries."
+          }
+        },
+        "events": {
+          "onChangePassword": {
+            "arguments": {
+              "request": {
+                "type": "string"
+              }
+            },
+            "description": "Fires when the operator submits the change-password form, carrying a JSON object with `username`, `current` and `next`. The control neither hashes nor verifies anything: bcrypt lives container-side, so the container must verify `current` against the stored hash before writing a new one, and must not trust `username` as authorisation - it is the value of the Username property, echoed back for convenience, not proof of who is asking. The control holds a pending state until ChangePasswordMessage reports what happened."
+          },
+          "onAddUser": {
+            "arguments": {
+              "request": {
+                "type": "string"
+              }
+            },
+            "description": "Fires when the operator submits the new-user row, carrying a JSON object with `username`, `displayName`, `password`, `role` and `owner`. The password is plaintext: the control cannot hash it, so the container must bcrypt it before the INSERT and must never store what arrives here. `role` is an integer bit field - 1 user, 3 supervisor, 65535 administrator. `owner` is the signed-in account's username, for the owned_by column, and like the change-password event's username it is convenience rather than authorisation: the container must check for itself that the caller may create an account at the role being asked for, or any operator who can open this section can grant themselves administrator. The control holds a pending state until AddUserMessage reports what happened."
+          },
+          "onPressUserTab": {
+            "arguments": {
+              "request": {
+                "type": "string"
+              }
+            },
+            "description": "Fires when the operator opens the Users section, carrying a JSON object with `owner` - the signed-in account's username - and `role`, its permissions. It is the control's cue to ask for the accounts it should list: the control queries nothing itself, so without a response the section stays empty. Fires on each opening rather than only the first, since the rows may have changed while another section was showing, and does not fire when the section cannot be opened at all. `owner` says whose accounts are wanted, but like the other events' usernames it is convenience rather than authorisation - the container must decide for itself which rows this operator may see, because anything it sends has already crossed into the browser."
+          }
+        },
+        "properties": {
+          "Language": {
+            "type": "string",
+            "default": "en",
+            "description": "Interface language: 'en' for English or 'ar' for Arabic, which also switches the layout to right-to-left. Any other value is treated as English. Read-only from the control's side: it has no language picker, so the value only ever arrives from the container."
+          },
+          "Username": {
+            "type": "string",
+            "default": "",
+            "description": "Who is signed in, as the app_user.username the container authenticated. Read-only from the control's side: it has no sign-in of its own, so the value only ever arrives from the container. Empty means nobody is signed in, which the control treats as no permissions rather than as a missing value."
+          },
+          "Role": {
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "description": "What the signed-in account may do, as the app_user.role integer. The database stores the number and TIA decides what each one means, so the control carries it without interpreting it - a role added later needs no change here. Defaults to 0, which the schema requires to be the least privileged role: a value that is absent, negative or not a number is read as 0, so a failure to supply it can never grant more than it withholds."
+          }
+        }
+      }
+    }
+  }
+}
