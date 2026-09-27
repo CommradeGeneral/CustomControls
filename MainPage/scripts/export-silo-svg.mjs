@@ -22,18 +22,19 @@ import { createServer } from 'vite'
 // holds them as React state, which a script cannot import.
 const dim = {
   lines: 1,
-  lineCount: 10,
-  siloWidth: 60,
+  lineCount: 6,
+  siloWidth: 80,
   h1: 120,
-  h2: 20,
+  h2: 25,
   h3: 30,
-  h4: 15,
-  w2: 10,
+  h4: 25,
+  w2: 20,
+  labelGap: 3,
 }
 const look = {
-  body: '#daf0ff',
-  roof: '#256a8c',
-  hopper: '#daf0ff',
+  body: '#abf5b1',
+  roof: '#258c50',
+  hopper: '#abf5b1',
   outline: 'none',
 }
 
@@ -96,7 +97,7 @@ try {
   const { createElement } = await import('react')
 
   // Top-left at the origin, so the file's canvas is exactly the silo.
-  const silo = Silo({ dim: { ...dim, x: 0, y: 0, anchor: 'top-left' }, look, warnings: 0, title: process.env.SILO_TITLE ?? 'Cement 2', values: ['1234.56 kg', '1234.56 kg'] })
+  const silo = Silo({ dim: { ...dim, x: 0, y: 0, anchor: 'top-left' }, look, warnings: 0, title: process.env.SILO_TITLE ?? 'Cement', values: [{ value: '1234.56', unit: 'kg' }, { value: '987.65', unit: 'kg' }] })
   // The <svg> is rendered by React too, not wrapped round the markup after:
   // outside one, React does not know the elements are SVG - it warns about
   // <linearGradient>'s casing and hoists <title> out as a document title.
@@ -104,9 +105,10 @@ try {
     'svg',
     {
       xmlns: 'http://www.w3.org/2000/svg',
+      // Room above the silo for its title, which is drawn over its top.
       width: silo.width,
-      height: silo.height,
-      viewBox: `0 0 ${silo.width} ${silo.height}`,
+      height: silo.height + silo.above,
+      viewBox: `0 ${-silo.above} ${silo.width} ${silo.height + silo.above}`,
     },
     silo.element,
   )

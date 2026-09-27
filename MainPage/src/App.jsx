@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useBridge } from './hooks/useBridge'
 import Silo from './components/element/Silo'
+import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
 import './index.css'
 import './App.css'
 
@@ -48,20 +49,21 @@ function App() {
   // a property the container sets - and the drawing is derived from it.
   const [dim, setDim] = useState({
     lines: 1,
-    siloWidth: 60,
+    siloWidth: 80,
     h1: 120,
-    h2: 30,
+    h2: 25,
     h3: 30,
-    h4: 20,
-    w2: 10,
-    lineCount: 10,
+    h4: 50,
+    w2: 20,
+    lineCount: 6,
     // Where the silo is placed: (x, y) is the position of the `anchor` -
     // a corner, 'top-left', 'top-right', 'bottom-left' or 'bottom-right',
     // or 'outlet', the centre of the hopper's exit.
     // y leaves room above the roof for the icon row.
     x: 0,
-    y: 0,
-    anchor: 'top-left'
+    y: 60,
+    anchor: 'top-left',
+    labelGap: 3
   })
 
   const lookColor = '#abf5b1'
@@ -79,14 +81,19 @@ function App() {
   const [warnings, setWarnings] = useState(0)
 
   // Placeholder: each icon's action is decided here, by name.
+  // Placeholder: each icon's action is decided here, by name.
   const silo = Silo({
     dim,
     look,
     warnings,
-    title: 'Cement with chemical additions',
-    values: ['1234.56 kg', '1234.56 kg'],
-    onIconClick: (name) => setWarnings((v)=> v+1),
-    onSiloClick: ()=> setWarnings((v)=> v > 0? v-1: 0)
+    title: 'Cement',
+    values: [
+      // Required, then served.
+      { value: '1234.56', unit: 'kg' },
+      { value: '987.65', unit: 'kg' },
+    ],
+    onIconClick: (name) => setWarnings((v) => v + 1),
+    onSiloClick: () => setWarnings((v) => v > 0 ? v - 1 : 0)
   })
 
   // Inside a container, nothing is rendered until the handshake succeeds: the
@@ -96,9 +103,25 @@ function App() {
 
   return (
     <div className="main-container" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <svg width="100%" viewBox="0 0 250 250" style={{ display: 'block' }}>
-        {silo.element}
-      </svg>
+      {/*
+        Pan and zoom: wheel or pinch to zoom in, then drag to move about.
+        limitToBounds keeps the drawing filling the view, so at its fitted
+        size (minScale 1) there is nothing to drag; double-click zoom is off
+        because the silo takes clicks itself.
+      */}
+
+      <TransformWrapper minScale={1} maxScale={100} limitToBounds={true} doubleClick={{ disabled: true }}>
+        <TransformComponent
+          wrapperStyle={{ width: '100%', height: '100%' }}
+          contentStyle={{ width: '100%', height: '100%' }}
+        >
+          <div className='svg-container' style={{ background: '#d6bebea6' }}>
+            <svg width="100%" height="100%" viewBox={`0 0 ${1920} ${1080}`} style={{ display: 'block' }}>
+              {silo.element}
+            </svg>
+          </div>
+        </TransformComponent>
+      </TransformWrapper>
     </div>
   )
 }

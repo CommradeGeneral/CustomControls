@@ -74,3 +74,21 @@
   user-select: none;
   pointer-events: none;
 }
+
+/*
+ * The title above the silo stays put; it is read, not clicked.
+ */
+.silo-title {
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+/*
+ * The icons float up above the title as they show, and sink back behind it
+ * as they hide. Their offset is set inline, in the silo's own units; this
+ * only animates it, alongside the icons' fade.
+ */
+.silo-icon-float {
+  transition: transform 0.25s ease;
+}

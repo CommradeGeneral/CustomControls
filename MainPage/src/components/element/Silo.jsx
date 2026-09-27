@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
-import { Settings, TriangleAlert } from 'lucide-react'
+import { Info, Settings, TriangleAlert } from 'lucide-react'
+import { SiloValues, readValue } from './SiloValues'
 import './Silo.css'
 
 /**
@@ -13,7 +14,7 @@ import './Silo.css'
  * stay in App. The only state here is whether the icon row is open, which
  * nothing outside the drawing needs.
  *
- *   dim   lines, lineCount (seam rings), siloWidth, h1 (body), h2 (fence), h3 / h4 (hopper cone and
+ *   dim   lines, lineCount (seam rings), labelGap (between icons), siloWidth, h1 (body), h2 (fence), h3 / h4 (hopper cone and
  *         outlet), w2 (outlet width); x, y and anchor place it - see
  *         siloOrigin
  *   look  body, hopper - each part's base colour; roof - the fence's, as it
@@ -34,9 +35,24 @@ import './Silo.css'
 // receives, so the caller decides what each one does.
 const ICONS = [
   { name: 'warning', Icon: TriangleAlert },
+  { name: 'info', Icon: Info },
   { name: 'settings', Icon: Settings },
 ]
+// The icon row spans the silo's width, its icons a fixed gap apart -
+// dim.labelGap, or ICON_GAP - and as large as that leaves room for. The
+// row's sizes below are for an icon ICON_SIZE across; the row is drawn at
+// that size and scaled (iconScale) to the size the icons actually get, so
+// their badge and the row's height scale with them, while the gap does not.
 const ICON_SIZE = 12
+// The gap between neighbouring icons, in the silo's units, when dim.labelGap
+// does not set one. Fixed: it does not scale with the silo.
+const ICON_GAP = 15
+// How much the row is scaled for a silo `dim`: the icon size that fills its
+// width at the gap, over ICON_SIZE. Never below a tenth, however tight.
+function iconScale(dim) {
+  const gaps = (ICONS.length - 1) * (dim.labelGap ?? ICON_GAP)
+  return Math.max(0.1, (dim.siloWidth - gaps) / ICONS.length / ICON_SIZE)
+}
 // The warning count's badge: a pill whose height is fixed and whose width
 // follows the text - a circle for one digit, stretching for '+99' - so the
 // number always fits inside it. Its vertical centre sits BADGE_Y below the
@@ -53,8 +69,10 @@ const BADGE_PAD = 3
 // so it grows rightwards over the icon's top-right corner and away from it.
 const BADGE_X = ICON_SIZE - 5
 const BADGE_Y = 2
-// The row's height including the badge above and the gap down to the fence.
+// The row's height including the badge above and the gap down to the fence,
+// at ICON_SIZE; iconRow gives it for a silo `dim`.
 const ICON_ROW = BADGE_H / 2 + ICON_SIZE + 4
+const iconRow = (dim) => ICON_ROW * iconScale(dim)
 
 // The clear gap cut into the icon around the pill, so the triangle's lines
 // stop short of it instead of touching it.
@@ -199,14 +217,8 @@ const RING = 0.012
 const RING_GROOVE = 0.3
 const RING_HIGHLIGHT = 0.55
 
-// The label on the body: a translucent panel carrying a bold title, wrapped
-// over as many lines as it needs to stay inside the panel (and broken at any
-// '\n'), and a line per value, all centred.
-// Sizes are shares of the silo's width, so the label scales with it.
+// Text sizes are shares of the silo's width, so the text scales with it.
 const LABEL_FONT = 0.146
-// The smallest the label is scaled to, to fit its lines between the rings.
-const LABEL_MIN_SCALE = 0.5
-const LABEL_LINE = 1.15 // line spacing, in font sizes
 // A line's ink, in font sizes: from the top of its capitals and digits
 // (LABEL_ASCENT above the baseline) to the bottom of descenders like 'g'.
 // What has to clear the rings - the empty space above and below the letters
@@ -217,67 +229,36 @@ const LABEL_INK = 0.93
 // a line is: measuring would need the text rendered first.
 const LABEL_CHAR = 0.56
 const LABEL_CHAR_BOLD = 0.61
-// Room kept between the text and the panel's sides, in font sizes.
-const LABEL_SIDE = 0.3
+
+// The title, above the silo on a single line: at the label's font size, or
+// smaller if that is what it takes to fit across the silo's width. It sits
+// TITLE_GAP above the fence and stays there; the icons float up above it when
+// they show (Silo.css animates them).
+const TITLE_GAP = 2 // at ICON_SIZE; scaled like the icon row
+// The title's font size for `title` on a silo `width` wide.
+function titleFont(title, width) {
+  const full = width * LABEL_FONT
+  const wide = textWidth(String(title), true, full)
+  return wide > width ? full * (width / wide) : full
+}
+// How much room above the silo's top the icon row and title need: the row,
+// floated up clear of the title - its gap and ink - when it shows.
+function titleRoom(title, dim) {
+  return title
+    ? iconRow(dim) + TITLE_GAP * iconScale(dim) + titleFont(title, dim.siloWidth) * LABEL_INK
+    : iconRow(dim)
+}
 
 // How wide `text` is at `font`, bold or not: measured with the same canvas
 // that parses colours, which lays text out the way the SVG will. Without a
 // canvas that can measure (the SVG export runs in Node), it is estimated
 // from Arial's average character widths instead.
-function textWidth(text, bold, font) {
+function textWidth(text, bold, font, family = 'Arial, sans-serif') {
   parser ??= document.createElement('canvas').getContext('2d')
   if (!parser.measureText) return text.length * font * (bold ? LABEL_CHAR_BOLD : LABEL_CHAR)
-  parser.font = `${bold ? 'bold ' : ''}100px Arial, sans-serif`
+  parser.font = `${bold ? 'bold ' : ''}100px ${family}`
   return (parser.measureText(text).width / 100) * font
 }
-
-// Breaks `text` into lines no wider than `width`: at each '\n', and between
-// words wherever the next word would overrun. A single word wider than
-// `width` gets a line of its own, still too wide - the caller shrinks the
-// font until it fits.
-function wrapText(text, bold, font, width) {
-  return String(text)
-    .split('\n')
-    .flatMap((paragraph) => {
-      const lines = []
-      let line = ''
-      for (const word of paragraph.split(/\s+/).filter(Boolean)) {
-        const tryLine = line ? `${line} ${word}` : word
-        if (line && textWidth(tryLine, bold, font) > width) {
-          lines.push(line)
-          line = word
-        } else {
-          line = tryLine
-        }
-      }
-      if (line) lines.push(line)
-      return lines
-    })
-}
-const LABEL_PANEL = 0.84 // the plate's width
-// The plate's look, as shares of the silo's width so it scales with it: the
-// rivets' size and inset from the corners, and the drop
-// shadow that lifts the plate off the drum.
-const RIVET_R = 0.016
-const RIVET_INSET = 0.037
-const PLATE_SHADOW = { dx: 0.005, dy: 0.01, blur: 0.008 }
-// Brushed metal: a light, uneven sheen across the plate.
-const PLATE_METAL = [
-  [0, '#b9c0c6'],
-  [0.3, '#e9edf0'],
-  [0.55, '#c7cdd2'],
-  [0.8, '#dde2e6'],
-  [1, '#a9b0b7'],
-]
-const PLATE_EDGE = '#6b737b'
-// Stamped text: dark ink with a thin highlight just below each letter, where
-// the pressed-in edge catches the light. The drop is in font sizes.
-const STAMP_INK = '#2b3036'
-const STAMP_DROP = 0.045
-// Clearance kept between any text and a seam ring (or the body's top and
-// bottom edges), and round the text inside the panel, in font sizes.
-const LABEL_CLEAR = 0.15
-const LABEL_PAD = 0.4
 
 // The far side of the fence is in the silo's own shadow and further off, so
 // it is drawn this much darker than the near side.
@@ -294,11 +275,13 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
 
   const [iconsOpen, setIconsOpen] = useState(false)
 
-  // The row runs edge to edge: the first icon flush with the silo's left side,
-  // the last flush with its right, the rest spread evenly between. A single
-  // icon has no span to share and sits at the left.
-  const step = ICONS.length > 1 ? (dim.siloWidth - ICON_SIZE) / (ICONS.length - 1) : 0
+  // The icons edge to edge across the silo, the fixed gap between each - in
+  // the row's own units, which the row's scale shrinks the gap into.
+  const step = ICON_SIZE + (dim.labelGap ?? ICON_GAP) / iconScale(dim)
   const badge = badgeText(warnings)
+  // How far the icons float up when they show: clear of the title, if there
+  // is one, which sits where the icons would otherwise be.
+  const iconLift = title ? TITLE_GAP * iconScale(dim) + titleFont(title, dim.siloWidth) * LABEL_INK : 0
   const badgeW = badge ? badgeWidth(badge) : 0
   // Mask ids are document-global, so each silo gets its own. useId's output
   // contains characters url(#...) does not accept.
@@ -443,151 +426,109 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
         </g>
       ))
 
-  // The label. Its lines must not cross a ring, so they go in the gaps
-  // between rings (layoutLabel), starting from whichever gap leaves the
-  // label centred on the body. If a line cannot fit between two rings at
-  // the full size, the whole label is scaled down step by step until every
-  // line does - never below LABEL_MIN_SCALE, where it gives up and lets the
-  // lines that still do not fit sit where there is most room.
-  const panelW = W * LABEL_PANEL
-  // The label is centred on the body: between its top rim and the bottom
-  // where it meets the cone.
-  const bodyMiddle = dim.h2 + dim.h1 / 2
-  const layoutLabel = (font) => {
-    // The title wraps to the panel's inside width; each value stays one line.
-    const inside = panelW - 2 * font * LABEL_SIDE
-    const lines = [
-      ...(title ? wrapText(title, true, font, inside).map((text) => ({ text, bold: true })) : []),
-      ...(values ?? []).map((value) => ({ text: String(value), bold: false })),
-    ].map((line) => ({ ...line, width: textWidth(line.text, line.bold, font) }))
-    // Too wide for the panel - a long value, or a title word longer than a
-    // line - counts as not fitting, so the font shrinks as for the rings.
-    const wideEnough = lines.every((line) => line.width <= inside)
-    const lineH = font * LABEL_LINE
-    const ink = font * LABEL_INK
-    const clear = font * LABEL_CLEAR
-    // Across the text's width a ring is not level: the front of its circle
-    // is lowest mid-way and rises towards the sides. So a ring blocks from
-    // where its arc crosses the widest line's ends down to its lowest point,
-    // plus its own thickness.
-    const widest = Math.min(panelW, Math.max(0, ...lines.map((l) => l.width)))
-    const dip = ry * Math.sqrt(Math.max(0, 1 - (widest / 2 / rx) ** 2))
-    const blocked = [
-      // The body's top: its rim, down to the front of the top face.
-      [-Infinity, dim.h2 + ry + clear],
-      ...rings.filter((ring) => !ring.onCone).map(({ y }) => [y + dip - clear, y + ry + ringW * 1.8 + clear]),
-      // The body's rounded bottom, from where it crosses the text's ends.
-      [coneTop + dip - clear, Infinity],
-    ]
-    const gaps = blocked
-      .slice(1)
-      .map(([bottom], i) => [blocked[i][1], bottom])
-      .filter(([a, b]) => b > a)
-    // n lines stacked take (n - 1) line spacings plus one line's ink.
-    const need = (n) => (n - 1) * lineH + ink
-    // Lines in order from gap `start`, as many to a gap as fit, moving down a
-    // gap when the next will not. `fits` is false if some line had no gap
-    // left to hold it.
-    const pack = (start) => {
-      const byGap = gaps.map(() => [])
-      let g = start
-      let fits = true
-      for (const line of lines) {
-        while (g < gaps.length && need(byGap[g].length + 1) > gaps[g][1] - gaps[g][0]) g++
-        if (g === gaps.length) {
-          fits = false
-          g = gaps.reduce((best, gp, k) => (gp[1] - gp[0] > gaps[best][1] - gaps[best][0] ? k : best), 0)
-        }
-        byGap[g].push(line)
-      }
-      // Each gap's lines centred in it as a block. `top` is where a line's
-      // ink starts; its baseline is LABEL_ASCENT below.
-      const placed = byGap.flatMap((inGap, k) => {
-        const from = (gaps[k][0] + gaps[k][1] - need(inGap.length)) / 2
-        return inGap.map((line, i) => ({ ...line, top: from + i * lineH }))
-      })
-      const top = Math.min(...placed.map((l) => l.top))
-      const bottom = Math.max(...placed.map((l) => l.top)) + ink
-      return { fits, placed, offCentre: Math.abs((top + bottom) / 2 - bodyMiddle) }
-    }
-    // Every gap the lines could start from, and of those that fit, the one
-    // that puts the label's middle nearest the body's.
-    const tries = gaps.map((_, start) => pack(start))
-    const fitting = tries.filter((t) => t.fits)
-    const { fits, placed } = (fitting.length ? fitting : tries).reduce((best, t) =>
-      t.offCentre < best.offCentre ? t : best,
-    )
-    return { font, ink, fits: fits && wideEnough, placed }
-  }
-  let label = layoutLabel(W * LABEL_FONT)
-  for (let scale = 0.95; !label.fits && scale >= LABEL_MIN_SCALE; scale -= 0.05) {
-    label = layoutLabel(W * LABEL_FONT * scale)
-  }
-  // The panel wraps all the text with LABEL_PAD round it.
-  const panel = label.placed.length > 0 && {
-    top: Math.min(...label.placed.map((l) => l.top)) - label.font * LABEL_PAD,
-    bottom: Math.max(...label.placed.map((l) => l.top)) + label.ink + label.font * LABEL_PAD,
-  }
+  // The values, for the data plate on the body (SiloValues).
+  const readings = (values ?? []).map(readValue)
 
   const outletD = `M ${W / 2 - r2} ${coneBottom} L ${W / 2 - r2} ${coneBottom + dim.h4} A ${r2} ${ry2} 0 0 0 ${W / 2 + r2} ${coneBottom + dim.h4} L ${W / 2 + r2} ${coneBottom} Z`
 
   return (
-    <g className={`silo${iconsOpen ? ' open' : ''}`} transform={`translate(${left},${top - ICON_ROW})`}>
-      <g className="silo-icons">
-        {ICONS.map(({ name, Icon }, i) => (
+    <g className={`silo${iconsOpen ? ' open' : ''}`} transform={`translate(${left},${top - iconRow(dim)})`}>
+      {title && (() => {
+        const font = titleFont(title, W)
+        // The title's ink ends TITLE_GAP above the fence.
+        return (
+          <g className="silo-title">
+            <text
+              x={W / 2}
+              y={iconRow(dim) - TITLE_GAP * iconScale(dim) - font * (LABEL_INK - LABEL_ASCENT)}
+              textAnchor="middle"
+              fontFamily="Arial, sans-serif"
+              fontSize={font}
+              fontWeight={700}
+              fill={look.text ?? '#000'}
+            >
+              {title}
+            </text>
+          </g>
+        )
+      })()}
+      {/* Drawn at ICON_SIZE and scaled to the icons' size, badge and all. */}
+      <g className="silo-icons" transform={`scale(${iconScale(dim)})`}>
+        {/*
+          The warning icon is drawn last, so it lies on top: its badge
+          reaches over towards the next icon, and SVG paints in document
+          order. Each icon keeps its place in the row by its index `i`.
+        */}
+        {ICONS.map((icon, i) => ({ ...icon, i }))
+          .sort((a, b) => (a.name === 'warning') - (b.name === 'warning'))
+          .map(({ name, Icon, i }) => (
+          // Hidden, an icon rests down behind the title; shown - the row
+          // open, or the warning icon kept up by an alarm - it floats up
+          // above it, fading in as it goes (Silo.css). The float is on a
+          // wrapper so its CSS transform does not replace the icon's own
+          // position, which is a transform attribute.
           <g
             key={name}
-            className={`silo-icon${name === 'warning' && badge ? ' alarm' : ''}`}
-            role="button"
-            aria-label={name}
-            transform={`translate(${i * step},${BADGE_H / 2})`}
-            onClick={() => onIconClick?.(name)}
+            className="silo-icon-float"
+            style={{
+              // iconLift is in the silo's units; inside the scaled row it is
+              // that much smaller.
+              transform: `translateY(${iconsOpen || (name === 'warning' && badge) ? -iconLift / iconScale(dim) : 0}px)`,
+            }}
           >
-            <title>{name}</title>
-            {/*
-              A lucide icon is stroke only, so on its own just its lines take
-              the click. The painted square behind it makes the whole icon,
-              gaps included, the target.
-            */}
-            <rect width={ICON_SIZE} height={ICON_SIZE} fill="transparent" />
-            {/*
-              With a badge, the icon is drawn through a mask that cuts a hole
-              around the badge, so the triangle's lines end in a clean gap
-              instead of butting against the pill.
-            */}
-            {name === 'warning' && badge ? (
-              <>
-                <mask id={cutId}>
-                  <rect width={ICON_SIZE} height={ICON_SIZE} fill="white" />
-                  <rect
-                    x={BADGE_X - BADGE_CUT}
-                    y={BADGE_Y - BADGE_H / 2 - BADGE_CUT}
-                    width={badgeW + 2 * BADGE_CUT}
-                    height={BADGE_H + 2 * BADGE_CUT}
-                    rx={BADGE_H / 2 + BADGE_CUT}
-                    fill="black"
-                  />
-                </mask>
-                <g mask={`url(#${cutId})`}>
-                  <Icon size={ICON_SIZE} />
+            <g
+              className={`silo-icon${name === 'warning' && badge ? ' alarm' : ''}`}
+              role="button"
+              aria-label={name}
+              transform={`translate(${i * step},${BADGE_H / 2})`}
+              onClick={() => onIconClick?.(name)}
+            >
+              <title>{name}</title>
+              {/*
+                A lucide icon is stroke only, so on its own just its lines take
+                the click. The painted square behind it makes the whole icon,
+                gaps included, the target.
+              */}
+              <rect width={ICON_SIZE} height={ICON_SIZE} fill="transparent" />
+              {/*
+                With a badge, the icon is drawn through a mask that cuts a hole
+                around the badge, so the triangle's lines end in a clean gap
+                instead of butting against the pill.
+              */}
+              {name === 'warning' && badge ? (
+                <>
+                  <mask id={cutId}>
+                    <rect width={ICON_SIZE} height={ICON_SIZE} fill="white" />
+                    <rect
+                      x={BADGE_X - BADGE_CUT}
+                      y={BADGE_Y - BADGE_H / 2 - BADGE_CUT}
+                      width={badgeW + 2 * BADGE_CUT}
+                      height={BADGE_H + 2 * BADGE_CUT}
+                      rx={BADGE_H / 2 + BADGE_CUT}
+                      fill="black"
+                    />
+                  </mask>
+                  <g mask={`url(#${cutId})`}>
+                    <Icon size={ICON_SIZE} />
+                  </g>
+                </>
+              ) : (
+                <Icon size={ICON_SIZE} />
+              )}
+              {name === 'warning' && badge && (
+                <g className="silo-badge" transform={`translate(${BADGE_X},${BADGE_Y})`}>
+                  <rect y={-BADGE_H / 2} width={badgeW} height={BADGE_H} rx={BADGE_H / 2} />
+                  {/*
+                    dy rather than dominant-baseline: 0.35em drops the digits'
+                    middle onto y=0 the same way in every browser, where
+                    'central' shifts with the font.
+                  */}
+                  <text x={badgeW / 2} dy="0.35em" textAnchor="middle" fontSize={BADGE_FONT}>
+                    {badge}
+                  </text>
                 </g>
-              </>
-            ) : (
-              <Icon size={ICON_SIZE} />
-            )}
-            {name === 'warning' && badge && (
-              <g className="silo-badge" transform={`translate(${BADGE_X},${BADGE_Y})`}>
-                <rect y={-BADGE_H / 2} width={badgeW} height={BADGE_H} rx={BADGE_H / 2} />
-                {/*
-                  dy rather than dominant-baseline: 0.35em drops the digits'
-                  middle onto y=0 the same way in every browser, where
-                  'central' shifts with the font.
-                */}
-                <text x={badgeW / 2} dy="0.35em" textAnchor="middle" fontSize={BADGE_FONT}>
-                  {badge}
-                </text>
-              </g>
-            )}
+              )}
+            </g>
           </g>
         ))}
       </g>
@@ -597,7 +538,7 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
       */}
       <g
         className="silo-body"
-        transform={`translate(0,${ICON_ROW})`}
+        transform={`translate(0,${iconRow(dim)})`}
         onClick={() => {
           setIconsOpen((open) => !open)
           onSiloClick?.()
@@ -687,146 +628,10 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
         />
         <ellipse cx={W / 2} cy={dim.h2} rx={rx} ry={ry} fill={shade(look.body, 0.15)} />
         {drawRings(false)}
-        {panel && (() => {
-          // The plate is painted on the drum, so it is drawn unrolled and
-          // bent round: every point at height v in the layout lands
-          // drumCurve(x) lower on screen - the same curve the rings follow,
-          // lowest mid-way, where the drum is nearest the viewer.
-          const drumCurve = (x) => ry * Math.sqrt(Math.max(0, 1 - ((x - W / 2) / rx) ** 2))
-          const at = (x, v) => `${x} ${v + drumCurve(x)}`
-          // An arc of the drum's curve at height v, from x0 to x1.
-          const arc = (x0, x1, v) => `A ${rx} ${ry} 0 0 ${x1 > x0 ? 0 : 1} ${at(x1, v)}`
-          // A rectangle of the unrolled label, bent round the drum: straight
-          // sides, top and bottom following the curve.
-          const bentRect = (x0, x1, v0, v1) =>
-            `M ${at(x0, v0)} ${arc(x0, x1, v0)} L ${at(x1, v1)} ${arc(x1, x0, v1)} Z`
-          // Seen on the curve, anything towards the sides is foreshortened:
-          // this much narrower than it is mid-way.
-          const squeeze = (x) => Math.sqrt(Math.max(0.05, 1 - ((x - W / 2) / rx) ** 2))
-
-          const plateX = (W - panelW) / 2
-          const plateD = bentRect(plateX, plateX + panelW, panel.top, panel.bottom)
-          const bevel = W * 0.012
-          const inset = W * RIVET_INSET
-          const drop = label.font * STAMP_DROP
-          // The rule sits half-way between the title's last line and the
-          // first value, when there are both.
-          const lastTitle = label.placed.findLast((line) => line.bold)
-          const firstValue = label.placed.find((line) => !line.bold)
-          const ruleY = lastTitle && firstValue && (lastTitle.top + label.ink + firstValue.top) / 2
-          const lineId = (i) => fillId(`label-line-${i}`)
-          return (
-            <g className="silo-label" stroke="none">
-              <defs>
-                <linearGradient id={fillId('plate')} x1="0" y1="0" x2="1" y2="0.15">
-                  {PLATE_METAL.map(([offset, colour]) => (
-                    <stop key={offset} offset={offset} stopColor={colour} />
-                  ))}
-                </linearGradient>
-                {/*
-                  The drum's own light and shade over the plate, as it bends
-                  round with it: PLASTIC's lightening as white, its darkening
-                  as black, each fading out where the other takes over.
-                */}
-                <linearGradient id={fillId('plate-light')} x1="0" y1="0" x2="1" y2="0">
-                  {PLASTIC.map(([offset, amount]) => (
-                    <stop key={offset} offset={offset} stopColor="#fff" stopOpacity={Math.max(0, amount) * 0.7} />
-                  ))}
-                </linearGradient>
-                <linearGradient id={fillId('plate-shade')} x1="0" y1="0" x2="1" y2="0">
-                  {PLASTIC.map(([offset, amount]) => (
-                    <stop key={offset} offset={offset} stopColor="#000" stopOpacity={Math.max(0, -amount) * 0.8} />
-                  ))}
-                </linearGradient>
-                <radialGradient id={fillId('rivet')} cx="0.35" cy="0.35" r="0.7">
-                  <stop offset="0" stopColor="#fff" />
-                  <stop offset="0.5" stopColor="#b8bec4" />
-                  <stop offset="1" stopColor="#6d747b" />
-                </radialGradient>
-                <filter id={fillId('plate-shadow')} x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow
-                    dx={W * PLATE_SHADOW.dx}
-                    dy={W * PLATE_SHADOW.dy}
-                    stdDeviation={W * PLATE_SHADOW.blur}
-                    floodColor="#000"
-                    floodOpacity="0.35"
-                  />
-                </filter>
-                {/*
-                  Each line's baseline, bent round the drum: an arc of the
-                  curve across the silo's whole width, so a line centred on
-                  it (startOffset 50%) sits mid-way and curves evenly.
-                */}
-                {label.placed.map((line, i) => {
-                  const base = line.top + label.font * LABEL_ASCENT
-                  return <path key={i} id={lineId(i)} d={`M ${at(0, base)} ${arc(0, W, base)}`} />
-                })}
-              </defs>
-              <path
-                d={plateD}
-                fill={`url(#${fillId('plate')})`}
-                stroke={PLATE_EDGE}
-                strokeWidth={W * 0.006}
-                filter={`url(#${fillId('plate-shadow')})`}
-              />
-              <path d={plateD} fill={`url(#${fillId('plate-light')})`} />
-              <path d={plateD} fill={`url(#${fillId('plate-shade')})`} />
-              {/* A bevel: a fine light line just inside the edge. */}
-              <path
-                d={bentRect(plateX + bevel, plateX + panelW - bevel, panel.top + bevel, panel.bottom - bevel)}
-                fill="none"
-                stroke="#fff"
-                strokeOpacity="0.6"
-                strokeWidth={W * 0.005}
-              />
-              {[plateX + inset, plateX + panelW - inset].flatMap((cx) =>
-                [panel.top + inset, panel.bottom - inset].map((cy) => (
-                  <ellipse
-                    key={`${cx},${cy}`}
-                    cx={cx}
-                    cy={cy + drumCurve(cx)}
-                    rx={W * RIVET_R * squeeze(cx)}
-                    ry={W * RIVET_R}
-                    fill={`url(#${fillId('rivet')})`}
-                    stroke="#5b636b"
-                    strokeWidth={W * 0.0025}
-                  />
-                )),
-              )}
-              {ruleY && (
-                <path
-                  d={`M ${at(plateX + W * 0.1, ruleY)} ${arc(plateX + W * 0.1, plateX + panelW - W * 0.1, ruleY)}`}
-                  fill="none"
-                  stroke="#7d858c"
-                  strokeWidth={W * 0.005}
-                />
-              )}
-              {/*
-                Stamped: a light copy of each line a hair below it, then the
-                line itself, both along its bent baseline.
-              */}
-              {label.placed.map((line, i) => (
-                <g
-                  key={i}
-                  fontFamily="Arial, sans-serif"
-                  fontSize={label.font}
-                  fontWeight={line.bold ? 700 : 400}
-                >
-                  <text transform={`translate(0,${drop})`} fill="#fff" fillOpacity="0.75">
-                    <textPath href={`#${lineId(i)}`} startOffset="50%" textAnchor="middle">
-                      {line.text}
-                    </textPath>
-                  </text>
-                  <text fill={look.text ?? STAMP_INK}>
-                    <textPath href={`#${lineId(i)}`} startOffset="50%" textAnchor="middle">
-                      {line.text}
-                    </textPath>
-                  </text>
-                </g>
-              ))}
-            </g>
-          )
-        })()}
+        <SiloValues
+          readings={readings}
+          g={{ W, bodyTop: dim.h2, bodyBottom: coneTop, look, measure: textWidth }}
+        />
         <g stroke="none">
           {fence.filter((p) => p.near).map((p) => (
             <rect key={p.angle} x={p.x} y={p.y} width={bar} height={p.height} fill={p.colour} />
@@ -874,14 +679,17 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
  *
  *   const silo = Silo({ dim, look, warnings, title, values, onIconClick, onSiloClick })
  *
- *   title   the label's heading, bold; wraps to fit the panel, and '\n'
- *           forces a break
- *   values  the lines under it, one string each (e.g. '1234.56 kg')
+ *   title   the silo's name, bold, on one line above it - shrunk to fit the
+ *           silo's width if it is long; floats up while the icons show
+ *   values  on the body, each a string ('1234.56 kg') or { value, unit }
+ *           - see SiloValues. Stacked and centred on the body: required,
+ *           then served
  *   silo.element   the drawing, to put inside an <svg>
  *   silo.width     total width
- *   silo.height    the silo's own height, fence to outlet. The icon row is
- *                  not counted: it is drawn above the fence, so a silo whose
- *                  top is at y needs ICON_ROW of room above y for it.
+ *   silo.height    the silo's own height, fence to outlet. The icon row and
+ *                  the title are not counted: they are drawn above the fence.
+ *   silo.above     how much room they need above the silo's top - leave at
+ *                  least this much between it and whatever is above.
  *
  * No hooks run here - the icon row's state lives in SiloShape - so calling it
  * like a plain function is safe, including conditionally or in a loop.
@@ -901,6 +709,7 @@ function Silo({ dim, look, warnings = 0, title, values, onIconClick, onSiloClick
     ),
     width: dim.siloWidth,
     height: siloHeight(dim),
+    above: titleRoom(title, dim),
   }
 }
 

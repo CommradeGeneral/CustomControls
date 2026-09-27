@@ -30,3 +30,12 @@
 .main-container > * {
   min-height: 0;
 }
+
+/*
+ * The pan-and-zoom canvas takes the room left in the column and clips the
+ * drawing to it, however far it is dragged or zoomed.
+ */
+.svg-container {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
