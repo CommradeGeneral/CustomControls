@@ -54,6 +54,9 @@ export function useBridge() {
   // What the list shows in place of rows: -1 not asked, 0 loaded, and 1/2/3
   // the failures LoadUsers can report.
   const [usersStatus, setUsersStatus] = useState(() => bridge?.usersStatus ?? -1)
+  // Outcome of an edit or a password reset on a listed account, raised by
+  // EditUserMessage. Same seq contract as the other messages.
+  const [editMessage, setEditMessage] = useState(null)
 
   useEffect(() => {
     if (!bridge) return undefined
@@ -88,6 +91,11 @@ export function useBridge() {
         code, duration, seq: (previous?.seq ?? 0) + 1,
       }))
     }
+    bridge.onEditUserMessage = ({ code, duration }) => {
+      setEditMessage((previous) => ({
+        code, duration, seq: (previous?.seq ?? 0) + 1,
+      }))
+    }
     // Validated by the LoadUsers method, so rows are stored as-is. A failure
     // carries no rows and leaves whatever is on screen alone: a refresh that
     // breaks should not blank a list that was working.
@@ -108,6 +116,7 @@ export function useBridge() {
       bridge.onChangePasswordMessage = null
       bridge.onAddUserMessage = null
       bridge.onUsers = null
+      bridge.onEditUserMessage = null
       bridge.onConnected = null
     }
   }, [bridge])
@@ -120,6 +129,7 @@ export function useBridge() {
     passwordMessage, setPasswordMessage,
     addUserMessage, setAddUserMessage,
     users, usersStatus, setUsersStatus,
+    editMessage, setEditMessage,
     // Bound so callers need no reference to the bridge itself. Standalone is
     // detected inside fire(), which logs rather than throwing.
     fire: (name, payload) => bridge?.fire(name, payload),

@@ -7,9 +7,9 @@
  * than as absence unless it is decoded first.
  *
  * Kept apart from the components that use them because they are pure value
- * handling with no React in them, and because the list and the detail page
- * have to agree: a row that reads as inactive in the list must not read as
- * active on its own page.
+ * handling with no React in them, and because every reader has to agree: an
+ * account that reads as inactive in the list must not read as active in the
+ * row that edits it.
  */
 
 /*
@@ -29,7 +29,7 @@
  */
 const MS_THRESHOLD = 1e11
 
-export function toMilliseconds(value) {
+function toMilliseconds(value) {
   if (value === null || value === undefined || value === '') return null
 
   if (value instanceof Date) {
@@ -79,8 +79,8 @@ export function toText(value) {
 }
 
 /**
- * Coerce to boolean the way buildCards does, so a list row and its detail page
- * cannot disagree about the same record.
+ * Coerce to boolean, so the list and the row editing it cannot disagree about
+ * the same account.
  *
  * A bit column does not always arrive as a boolean: serializing the row can
  * carry it as the number 0 or the string "0", and a bare truthiness test reads

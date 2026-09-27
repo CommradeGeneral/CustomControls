@@ -1,0 +1,41 @@
+{
+  "mver": "1.2.0",
+  "control": {
+    "identity": {
+      "name": "MainPage",
+      "version": "1.0",
+      "displayname": "MainPage",
+      "icon": "./control/icons.png",
+      "type": "guid://92483FC6-3362-45C8-9483-598B287DCA9E",
+      "start": "./control/index.html"
+    },
+    "metadata": {
+      "author": "Siemens",
+      "keywords": [
+        "MainPage"
+      ]
+    },
+    "contracts": {
+      "api": {
+        "methods": {
+          "Print": {
+            "parameters": {
+              "data": {
+                "type": "string"
+              }
+            },
+            "description": "Write a diagnostic message to the control's console and status line. Exists to prove the container -> control direction of the contract is wired, which is the half a fired event cannot demonstrate."
+          }
+        },
+        "events": {},
+        "properties": {
+          "Language": {
+            "type": "string",
+            "default": "en",
+            "description": "Interface language: 'en' for English or 'ar' for Arabic, which also switches the layout to right-to-left. Any other value is treated as English. Read-only from the control's side: it has no language picker, so the value only ever arrives from the container."
+          }
+        }
+      }
+    }
+  }
+}

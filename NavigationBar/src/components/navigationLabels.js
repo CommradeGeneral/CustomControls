@@ -8,6 +8,8 @@ export const labels = {
     settings: 'Settings',
     signOut: 'Sign out',
     languageName: 'English',
+    // {name} is replaced with the signed-in username.
+    welcome: 'Welcome, {name}',
   },
   ar: {
     brand: 'التنقل',
@@ -18,5 +20,6 @@ export const labels = {
     settings: 'الإعدادات',
     signOut: 'تسجيل الخروج',
     languageName: 'العربية',
+    welcome: 'مرحبًا، {name}',
   },
 }

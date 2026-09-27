@@ -1,0 +1,32 @@
+/*
+ * The control's shell.
+ *
+ * Fills what the HMI screen gives it exactly: the chain
+ * html -> body -> #root -> here must pass its height down intact, or a child
+ * asking for height: 100% resolves against content rather than the screen.
+ *
+ * width: 100% rather than 100vw - the viewport unit ignores the container the
+ * screen actually gives the control, and includes any scrollbar width.
+ *
+ * No padding: whatever fills this supplies its own inset, so a layout that
+ * wants to run edge to edge can.
+ */
+.main-container {
+  display: flex;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  background: #fff;
+}
+
+/*
+ * min-height: 0 is the link that is easy to miss: a flex child defaults to
+ * min-height: auto, which refuses to shrink below its content, so an
+ * overflowing child would stretch the control and put the scrollbar on the
+ * WinCC iframe instead of inside the control where it belongs.
+ */
+.main-container > * {
+  min-height: 0;
+}

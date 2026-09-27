@@ -1,0 +1,76 @@
+/*
+ * The icon row above the silo: hidden until a click on the silo opens it -
+ * except the warning icon while there are alarms (.alarm), which stays up
+ * whether the row is open or not, so an alarm is never out of sight.
+ *
+ * Set per icon, not on the row: a group's opacity caps its children's, so a
+ * hidden row could not show one icon of its own.
+ *
+ * pointer-events follows opacity, so the hidden icons cannot be clicked.
+ */
+.silo .silo-icons {
+  color: #2f3a45;
+}
+
+.silo .silo-icon {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.silo.open .silo-icon,
+.silo .silo-icon.alarm {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.silo-body,
+.silo-icon {
+  cursor: pointer;
+}
+
+.silo-icon:hover {
+  color: #0a7bd6;
+}
+
+/*
+ * The warning icon while there are alarms: red, the badge's colour, and a
+ * darker red rather than the hover blue, so hovering never hides the alarm.
+ */
+.silo-icon.alarm {
+  color: #d93025;
+}
+
+.silo-icon.alarm:hover {
+  color: #a8231b;
+}
+
+/*
+ * The warning count: a solid red pill with white digits, set in a gap cut
+ * out of the icon. Fixed colours, so it stays red when the icon is hovered.
+ */
+.silo-badge rect {
+  fill: #d93025;
+}
+
+/*
+ * Not text to the user, part of the icon: user-select stops a drag or a
+ * double-click from highlighting it, and pointer-events: none keeps the I-beam
+ * cursor off it, so the pointer stays the icon's hand and the click falls
+ * through to the pill beneath - still the warning icon.
+ */
+.silo-badge text {
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
+  fill: #fff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The label is read, not selected or aimed at: clicks go to the silo. */
+.silo-label {
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}

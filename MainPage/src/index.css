@@ -1,0 +1,24 @@
+/*
+ * The control is rendered into a WinCC Unified iframe that is sized by the HMI
+ * screen, so the whole chain html -> body -> #root must fill it exactly and
+ * never introduce its own scrollbars.
+ */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  width: 100%;
+  font: 22px/1.45 system-ui, 'Segoe UI', Tahoma, sans-serif;
+}
+
+body {
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  display: flex;
+  min-height: 0;
+}

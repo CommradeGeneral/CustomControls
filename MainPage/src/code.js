@@ -3,14 +3,16 @@
 //
 // WebCC starts before React and forwards TIA property changes to the UI.
 //
-// Carries no methods: the container drives this control entirely through its
-// two properties, and everything the operator does leaves as an event.
+// Carries the Print method and the Language property. What is here besides
+// them is the plumbing every contract needs whatever is added later: the
+// handshake and its settled/connected flags, the dispatch queue that survives
+// React mounting late, and the standalone path.
 //
 // Adding a method means three things, and forgetting any one of them is the
 // usual bug: declare it in manifest.json, implement it in the contract object
 // below, and give React somewhere to hear it - a field to hold the value and
 // an `on*` callback beside onLanguage.
-window.NavBridge = {
+window.MainBridge = {
   connected: false,
   // Whether a container is present at all. Distinct from `connected`: absent
   // means standalone (browser/dev, render immediately), present means we must
@@ -20,39 +22,19 @@ window.NavBridge = {
   // waiting" from "tried and failed".
   settled: false,
   language: 'en',
-  selectedItemNumber: 0,
-  // Who the container says is signed in. Empty is the signed-out value: the
-  // control never authenticates anyone itself, so until the container supplies
-  // a name there is nobody to greet.
-  usernameReal: '',
   // Anything dispatched before React attached its handlers, replayed on mount.
   // Without this a property that arrives during the handshake is lost, since
   // the container does not re-send it.
   pending: [],
   onLanguage: null,
-  onSelectedItemNumber: null,
-  onUsernameReal: null,
   // Filled in by React; called when connected/settled changes so the gate can
   // re-render. `connected` is a plain field and is not observable on its own.
   onConnected: null,
 };
 
-/**
- * A username string from whatever the container sent.
- *
- * A NULL column crossing the boundary can arrive as the literal text "null",
- * which is truthy and would otherwise be greeted by name. Absent in any
- * spelling becomes '', which is the signed-out value.
- */
-function toUsername(value) {
-  if (value === null || value === undefined) return '';
-  var text = String(value).trim();
-  return (text === 'null' || text === 'undefined') ? '' : text;
-}
-
 /** Mark the handshake settled and let React know it can re-evaluate the gate. */
 function bridgeSettle(isConnected) {
-  var b = window.NavBridge;
+  var b = window.MainBridge;
   b.connected = isConnected;
   b.settled = true;
   if (b.onConnected) b.onConnected();
@@ -63,10 +45,10 @@ function bridgeSettle(isConnected) {
  *
  * `kind` names the channel: 'Language' is delivered to onLanguage. A handler
  * that is not attached yet does not lose its value - it is replayed from
- * `pending` once the UI attaches.
+ * `pending` once useBridge attaches.
  */
 function bridgeDispatch(kind, value) {
-  var b = window.NavBridge;
+  var b = window.MainBridge;
   var handler = b['on' + kind];
   if (handler) handler(value);
   else b.pending.push({ kind: kind, value: value });
@@ -101,45 +83,19 @@ WebCC.start(
       try {
         var props = WebCC.Properties;
         if (props) {
-          window.NavBridge.language = props.Language;
-          window.NavBridge.selectedItemNumber = props.selectedItemNumber;
+          window.MainBridge.language = props.Language;
           bridgeDispatch('Language', props.Language);
-          bridgeDispatch('SelectedItemNumber', props.selectedItemNumber);
-          // Normalized on the way in, so every reader sees the coerced value
-          // rather than each having to repeat the check.
-          window.NavBridge.usernameReal = toUsername(props.usernameReal);
-          bridgeDispatch('UsernameReal', window.NavBridge.usernameReal);
         }
       } catch (e) {
-        console.warn('[NavigationBar] property read failed:', e);
+        console.warn('[MainPage] property read failed:', e);
       }
 
       if (WebCC.onPropertyChanged) {
         WebCC.onPropertyChanged.subscribe(function (val) {
           switch (val.key) {
             case 'Language':
-              window.NavBridge.language = val.value;
+              window.MainBridge.language = val.value;
               bridgeDispatch('Language', val.value);
-              break;
-            /*
-             * A sign-out is a property change like any other: the container
-             * sets usernameReal back to ''. It is forwarded unconditionally
-             * rather than filtered for a "useful" value - dropping the empty
-             * one is what would leave the last operator's name on screen after
-             * they signed out.
-             */
-            case 'usernameReal':
-              window.NavBridge.usernameReal = toUsername(val.value);
-              bridgeDispatch('UsernameReal', window.NavBridge.usernameReal);
-              break;
-            case 'selectedItemNumber':
-              // manifest declares minimum 0 and maximum 3; drop anything the
-              // container sends outside that rather than highlighting an item
-              // the bar does not have.
-              if (val.value >= 0 && val.value <= 3) {
-                window.NavBridge.selectedItemNumber = val.value;
-                bridgeDispatch('SelectedItemNumber', val.value);
-              }
               break;
           }
         });
@@ -151,11 +107,22 @@ WebCC.start(
   },
   // contract (see also manifest.json)
   {
-    events: ['onPressingIcon', 'onLoginOut', 'onLanguageChange'],
+    methods: {
+      /**
+       * Diagnostic sink for the container: whatever it sends is logged here.
+       *
+       * Deliberately does not touch React — it exists to prove the
+       * container -> control direction of the contract is wired, which is the
+       * half that a fired event cannot demonstrate.
+       */
+      Print: function (data) {
+        console.log('[MainPage] Print called with', data);
+        setStatus('Print: ' + data);
+      }
+    },
+    events: [],
     properties: {
       Language: 'en',
-      selectedItemNumber: 0,
-      usernameReal: ''
     }
   },
   // placeholder to include additional Unified dependencies (not used here)
@@ -176,10 +143,13 @@ WebCC.start(
  * plain browser is how the UI gets built, and an event that vanishes without
  * trace makes a working control look broken. The return value still says
  * whether anything was actually sent.
+ *
+ * No events are declared yet, so every call returns false until one is added
+ * to manifest.json and to the `events` list above.
  */
-window.NavBridge.fire = function (name, payload) {
+window.MainBridge.fire = function (name, payload) {
   if (!window.WebCC || !WebCC.Events || !WebCC.Events.fire) {
-    console.log('[NavigationBar] standalone: ' + name + ' not fired', payload);
+    console.log('[MainPage] standalone: ' + name + ' not fired', payload);
     setStatus('standalone: ' + name);
     return false;
   }

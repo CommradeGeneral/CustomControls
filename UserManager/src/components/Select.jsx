@@ -29,7 +29,7 @@ import './Select.css'
  * the caller never has to parse a string back into the type it started with,
  * which is what a native select forces.
  */
-export function Select({ value, options, onChange, label, disabled = false, language = 'en' }) {
+export function Select({ value, options, onChange, label, placeholder, disabled = false, language = 'en' }) {
   const [open, setOpen] = useState(false)
   // Which option the keyboard is on while open. Separate from the committed
   // value so Escape can abandon a move without changing anything.
@@ -152,7 +152,12 @@ export function Select({ value, options, onChange, label, disabled = false, lang
         onClick={() => setOpen((wasOpen) => !wasOpen)}
         onKeyDown={handleButtonKeyDown}
       >
-        <span className="select__value">{selected?.label ?? ''}</span>
+        {/* A value outside the offered list has no option to read a label
+            from, so the caller supplies one rather than the control rendering
+            blank - which would read as broken instead of as restricted. */}
+        <span className={'select__value' + (selected ? '' : ' select__value--outside')}>
+          {selected?.label ?? placeholder ?? ''}
+        </span>
         <ChevronDown className="select__caret" size="1em" strokeWidth={2} aria-hidden="true" />
       </button>
 

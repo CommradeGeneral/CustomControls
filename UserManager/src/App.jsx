@@ -60,10 +60,10 @@ const LOCKED_HINT = {
  * container is what must refuse to send data the role may not have, and must
  * re-check any request the control sends it.
  *
- * The change-password section is wired: it fires onChangePassword and waits
- * for ChangePasswordMessage. The Users section is not - it shows a placeholder
- * where components/ItemList will go, and its own file says what wiring it up
- * involves.
+ * Both sections are wired. Change password fires onChangePassword and waits
+ * for ChangePasswordMessage. Users asks for its rows with onPressUserTab and
+ * fires onAddUser, onEditUser, onResetPassword and onDeleteUser, each answered
+ * by AddUserMessage or EditUserMessage.
  *
  * The sections are alternatives rather than halves of one view, which is what
  * the tab strip expresses and why only the open one is mounted.
@@ -75,10 +75,14 @@ const LOCKED_HINT = {
  * What the contract currently carries
  * ---------------------------------------------------------------------------
  *
- * Two methods, one event and three properties, so useBridge returns:
+ * Five methods, six events and three properties. useBridge returns:
  *
  *   ready, language, username, role,
- *   passwordMessage, setPasswordMessage, fire
+ *   passwordMessage, setPasswordMessage,
+ *   addUserMessage, setAddUserMessage,
+ *   users, usersStatus, setUsersStatus,
+ *   editMessage, setEditMessage,
+ *   fire
  *
  * Print is deliberately invisible here: it logs to the console and the status
  * line without touching React, which is what makes it a test of the
@@ -98,22 +102,6 @@ const LOCKED_HINT = {
  * it, useBridge holds it as state and attaches an `on*` handler for it, and
  * this component reads it. An event needs the first two and `fire`.
  *
- * ---------------------------------------------------------------------------
- * Components already written
- * ---------------------------------------------------------------------------
- *
- * Unused and out of the bundle, kept as the pieces a fuller UI starts from:
- *
- *   ItemList            components/ItemList      a searchable, paged list
- *   MainPage            components/MainPage      a pane and its four states
- *   useMainPane         hooks/useMainPane        which pane is showing
- *   useSidePageReport   hooks/useSidePageReport  naming it for the container
- *
- * ItemList is what belongs in the Users section - it is domain-neutral, so an
- * app_user row needs an alias entry in buildCards.js rather than a new
- * component. All four expect the fuller contract this manifest no longer
- * declares - rows, detail pages, create and delete outcomes - so wiring one
- * back in means restoring the methods it reads as well as the component.
  */
 function App() {
   const {
@@ -121,6 +109,7 @@ function App() {
     passwordMessage, setPasswordMessage,
     addUserMessage, setAddUserMessage,
     users, usersStatus, setUsersStatus,
+    editMessage, setEditMessage,
     fire,
   } = useBridge()
 
@@ -183,11 +172,18 @@ function App() {
     identity.current = { owner: username, role }
   }, [username, role])
 
-  const askForUsers = () => {
-    // Back to the loading state before asking, so the section shows the wait
-    // rather than leaving the previous failure on screen until an answer
-    // arrives - and so a retry after a failure is visibly a retry.
-    setUsersStatus(-1)
+  /*
+   * Ask the container for the accounts.
+   *
+   * `showWait` decides whether the section blanks to its loading state first.
+   * It does for a first open and for a retry after a failure, where there is
+   * either nothing on screen or something wrong with what is - but not for a
+   * refresh after a save, where the rows are already there and still valid.
+   * Blanking then makes the list vanish and reappear, which reads as the edit
+   * having destroyed something.
+   */
+  const askForUsers = (showWait = true) => {
+    if (showWait) setUsersStatus(-1)
     fireRequest('onPressUserTab', { ...identity.current }, fire)
   }
 
@@ -203,6 +199,64 @@ function App() {
     if (!ready || section !== 'users') return
     ask.current()
   }, [ready, section])
+
+  /*
+   * Re-ask after a save, so the list shows what was actually written rather
+   * than what the control assumed. The row closes on a 0 without updating
+   * itself - it has no way to know whether the container stored exactly what
+   * it sent - so the refreshed rows are what make the change visible.
+   */
+  useEffect(() => {
+    if (editMessage?.code !== 0) return undefined
+
+    /*
+     * Asked for at once, so the round trip to the container overlaps the
+     * Timeout the row spends showing its success rather than starting after
+     * it. By the time the row closes the fresh rows have usually arrived, and
+     * the list is correct the moment it is visible again.
+     *
+     * Quietly: the rows on screen are still the right ones until the answer
+     * replaces them, so the list must not flash through its loading state on
+     * the way - the open row is sitting on top of it.
+     */
+    ask.current(false)
+
+    /*
+     * The message is spent once the row has closed on it, which is what the
+     * Timeout measures. Left standing, it is re-applied the moment any row is
+     * opened again - the row reads the outcome as its own, sees a code that
+     * closes, and shuts immediately - so the section looks as though editing
+     * has stopped working after one successful save.
+     *
+     * Cleared on the same schedule as the row's own close rather than with
+     * the refresh above, so the two stay in step.
+     */
+    const wait = editMessage.duration > 0 ? editMessage.duration : 0
+    const timer = setTimeout(() => setEditMessage(null), wait)
+
+    return () => clearTimeout(timer)
+  }, [editMessage?.seq, editMessage?.code, editMessage?.duration])
+
+  /*
+   * And the same after a create, for the same reason: the new account exists
+   * in the database and nowhere else, so nothing puts it in the list until the
+   * container is asked again.
+   *
+   * Asked for at once, as on the edit path, so the query overlaps the Timeout
+   * rather than following it. The message is cleared when that Timeout
+   * expires, since one left standing would re-close the next draft row the
+   * moment it opened.
+   */
+  useEffect(() => {
+    if (addUserMessage?.code !== 0) return undefined
+
+    ask.current(false)
+
+    const wait = addUserMessage.duration > 0 ? addUserMessage.duration : 0
+    const timer = setTimeout(() => setAddUserMessage(null), wait)
+
+    return () => clearTimeout(timer)
+  }, [addUserMessage?.seq, addUserMessage?.code, addUserMessage?.duration])
 
   // The document, not the control: an RTL language has to reach the root for
   // scrollbars and text selection to follow it, which a nested dir cannot do.
@@ -279,6 +333,26 @@ function App() {
               users={users}
               usersStatus={usersStatus}
               onReload={askForUsers}
+              // Decides which roles the dropdowns offer: an administrator may
+              // hand out any of them, anyone else only the roles below
+              // administrator.
+              callerRole={role}
+              editMessage={editMessage}
+              onEditUser={(draft) => {
+                setEditMessage(null)
+                fireRequest('onEditUser', { ...draft, owner: username, callerRole: role }, fire)
+              }}
+              onResetPassword={(draft) => {
+                setEditMessage(null)
+                fireRequest('onResetPassword', { ...draft, owner: username, callerRole: role }, fire)
+              }}
+              // A closed row has nothing left to report, so an unread verdict
+              // is dropped rather than waiting to reappear on the next one.
+              onDismissEdit={() => setEditMessage(null)}
+              onDeleteUser={(draft) => {
+                setEditMessage(null)
+                fireRequest('onDeleteUser', { ...draft, owner: username, callerRole: role }, fire)
+              }}
               // The signed-in account owns what it creates. Passed from here
               // rather than read inside the section, so the section stays a
               // description of its own UI and the container's value has one
@@ -292,7 +366,7 @@ function App() {
                 // Left standing, it would be re-applied when the next message
                 // arrives with the same code and seq.
                 setAddUserMessage(null)
-                fireRequest('onAddUser', draft, fire)
+                fireRequest('onAddUser', { ...draft, callerRole: role }, fire)
               }}
             />
           )}

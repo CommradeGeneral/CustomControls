@@ -56,6 +56,7 @@ window.UserBridge = {
   // failure.
   usersStatus: -1,
   onUsers: null,
+  onEditUserMessage: null,
   // Filled in by React; called when connected/settled changes so the gate can
   // re-render. `connected` is a plain field and is not observable on its own.
   onConnected: null,
@@ -340,9 +341,28 @@ WebCC.start(
        */
       LoadUsers: function (MessageNumber, Timeout, Payload) {
         bridgeLoadUsers(MessageNumber, Timeout, Payload);
+      },
+
+      /**
+       * Report the outcome of an edit or a password reset on a listed
+       * account.
+       *
+       * 0 saved, 1 the account is gone, 2 the password was refused by policy,
+       * 3 the database failed, 4 the request was rejected. Any other number
+       * clears the message.
+       *
+       * One method for both, because the row that sent either is the row that
+       * has to be told, and a second method would only make the two
+       * distinguishable to code that does not need to distinguish them.
+       */
+      EditUserMessage: function (MessageNumber, Timeout) {
+        bridgeDispatch('EditUserMessage', {
+          code: Number(MessageNumber),
+          duration: Number(Timeout) || 0
+        });
       }
     },
-    events: ['onChangePassword', 'onAddUser', 'onPressUserTab'],
+    events: ['onChangePassword', 'onAddUser', 'onPressUserTab', 'onEditUser', 'onResetPassword', 'onDeleteUser'],
     properties: {
       Language: 'en',
       // The signed-out pair, matching the manifest's defaults. These are what

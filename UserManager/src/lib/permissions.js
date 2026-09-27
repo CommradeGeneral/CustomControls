@@ -20,15 +20,23 @@
  * quietly grant every permission below it, so adding a bit later would widen
  * access that was never granted.
  *
- *   bit 0  (value 1)  may see and manage other users
+ *   bit 1  (value 2)  may see and manage other users
  *
- * Bits 1 and up are unassigned. A role carrying them is not refused: the
- * container may use them for permissions this build does not know about, and
- * masking them off here would be this control deciding what they mean.
+ * Bit 0 and bits 2 and up are unassigned here. A role carrying them is not
+ * refused: the container may use them for permissions this build does not
+ * know about, and masking them off would be this control deciding what they
+ * mean.
  */
 
-/** Bit 0: the holder may see the Users section. */
-export const ROLE_MANAGE_USERS = 1
+/**
+ * Bit 1: the holder may see the Users section.
+ *
+ * The second bit counting from one, which is bit index 1 and therefore the
+ * value 2 - not the value 1, which is bit 0 and is what the plain User role
+ * is made of. That distinction is the whole reason this is a named constant
+ * rather than a literal at each call site.
+ */
+export const ROLE_MANAGE_USERS = 2
 
 /**
  * The roles an operator can be given from the Users section.
@@ -60,6 +68,39 @@ export const ASSIGNABLE_ROLES = [
 /** The role a new account starts on: the narrowest this control can assign. */
 export const DEFAULT_ASSIGNED_ROLE = ASSIGNABLE_ROLES[0].value
 
+/** The administrator value, named so nothing has to repeat the literal. */
+export const ROLE_ADMIN = 0xFFFF
+
+/**
+ * The roles `callerRole` may hand out.
+ *
+ * Only an administrator can create or promote another administrator.
+ * Everyone else is left with the roles below that, so a supervisor cannot
+ * grant more than they hold - which is the rule that stops the section being
+ * a route to promoting yourself.
+ *
+ * This is what the dropdowns offer, not what the database enforces. A role
+ * removed from the list is merely unofferable: the container still has to
+ * refuse it, because the request is assembled in a browser and anything the
+ * UI declines to show can still be sent by hand. onEditUser and onAddUser
+ * both check it independently for that reason.
+ *
+ * Tested by carrying every bit of ROLE_ADMIN rather than through
+ * hasPermission, which asks whether *any* of them are set - true of almost
+ * every role, since 0xFFFF covers bit 0. Administrator is the whole mask, so
+ * the test has to be the whole mask.
+ */
+export function isAdmin(role) {
+  if (!Number.isInteger(role) || role < 0) return false
+  // eslint-disable-next-line no-bitwise
+  return (role & ROLE_ADMIN) === ROLE_ADMIN
+}
+
+export function assignableBy(callerRole) {
+  if (isAdmin(callerRole)) return ASSIGNABLE_ROLES
+  return ASSIGNABLE_ROLES.filter((entry) => entry.value !== ROLE_ADMIN)
+}
+
 /**
  * Whether `role` carries `bit`.
  *
@@ -81,10 +122,14 @@ export function hasPermission(role, bit) {
  * Whether this role may see and manage other users.
  *
  * Named rather than left as a bitmask at the call site, so the UI reads as a
- * statement about permission and the bit is defined in one place. Role 0 - the
- * schema's default, and the one it requires to be least privileged - carries
- * no bits and is therefore refused, which is the right way round: a row
- * inserted without an explicit role must not be able to manage users.
+ * statement about permission and the bit is defined in one place.
+ *
+ * Of the roles this control can assign, supervisor (3) and administrator
+ * (65535) carry the bit and plain user (1) does not - a user manages nobody.
+ * Role 0, the schema's default and the one it requires to be least
+ * privileged, carries no bits at all and is refused, which is the right way
+ * round: a row inserted without an explicit role must not be able to manage
+ * users.
  */
 export function canManageUsers(role) {
   return hasPermission(role, ROLE_MANAGE_USERS)

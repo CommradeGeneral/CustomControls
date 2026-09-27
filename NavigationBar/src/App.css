@@ -371,3 +371,68 @@
     font-size: 0.75rem;
   }
 }
+
+/*
+ * Who is signed in: between the brand and the menu, with no surface of its
+ * own.
+ *
+ * The bar is already a surface, and a box around two words competes with the
+ * controls either side of it. A thin accent rule on the leading edge is
+ * enough to say the greeting and the brand are different things - and being a
+ * logical inset, it follows the reading direction without a second rule for
+ * Arabic.
+ *
+ * fit-content, so it takes exactly the width of the name: the menu beside it
+ * gets the rest, and a short username leaves no reserved gap.
+ */
+.welcome-block {
+  display: flex;
+  width: fit-content;
+  flex: 0 0 auto;
+  align-items: center;
+  align-self: center;
+  box-sizing: border-box;
+  border-inline-start: 2px solid var(--nav-active);
+  padding: 2px 0 2px 12px;
+  margin-inline-end: 4px;
+}
+
+/* The rule sits on the leading edge, so under RTL the padding has to move
+   with it - otherwise the text would hug the rule on one side and float on
+   the other. */
+.navigation-bar[dir='rtl'] .welcome-block {
+  padding: 2px 12px 2px 0;
+}
+
+.welcome-text {
+  display: flex;
+  overflow: hidden;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/*
+ * "Welcome," is the frame; the name is the information. The greeting is
+ * therefore quieter, and the name carries the weight - which is what makes
+ * this readable at a glance rather than a sentence to be parsed.
+ */
+.welcome-greeting {
+  color: var(--nav-muted);
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* Truncates rather than wrapping, so a long username cannot make the bar two
+   lines tall - and it is the name that gives way, never the greeting. */
+.welcome-name {
+  overflow: hidden;
+  max-width: 18ch;
+  color: var(--nav-text);
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  text-overflow: ellipsis;
+}

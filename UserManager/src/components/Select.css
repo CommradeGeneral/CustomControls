@@ -214,3 +214,12 @@
     animation: none;
   }
 }
+
+/*
+ * A value the list does not offer - shown so the control is not blank, and
+ * muted so it does not read as a normal selection.
+ */
+.select__value--outside {
+  color: #6b7280;
+  font-style: italic;
+}

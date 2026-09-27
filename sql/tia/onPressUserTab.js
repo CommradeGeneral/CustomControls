@@ -1,7 +1,4 @@
 export async function UserManager_1_OnonPressUserTab(item, request) {
-  var CONTROL = "UserManager_1";
-
-  var ROLE_MANAGE_USERS = 1;
   var ROLE_ADMIN = 65535;
   var MAX_ROWS = 500;
 
@@ -12,9 +9,10 @@ export async function UserManager_1_OnonPressUserTab(item, request) {
   try {
     let payload = JSON.parse(request);
     let owner = String(payload.owner || "").trim();
+    let callerRole = Number(payload.role) || 0;
 
     if (owner.length === 0) {
-      Screen.Items(CONTROL).LoadUsers(2, 0, "");
+      item.LoadUsers(2, 0, "");
       HMIRuntime.Trace("onPressUserTab: no signed-in user");
       return;
     }
@@ -26,33 +24,11 @@ export async function UserManager_1_OnonPressUserTab(item, request) {
     let CASE_SENSITIVE = "COLLATE Latin1_General_CS_AS";
     let cs = CASE_SENSITIVE ? " " + CASE_SENSITIVE : "";
 
-    let me = await conn.Execute(`
-        SET NOCOUNT ON;
-        SELECT role, is_active FROM dbo.users
-        WHERE username${cs} = ${q(owner)};
-      `);
-
-    let meRows = me.Results[0].Rows;
-    let account = null;
-    for (let k in meRows) { account = meRows[k]; break; }
-
-    if (!account || !account.is_active) {
-      Screen.Items(CONTROL).LoadUsers(2, 0, "");
-      HMIRuntime.Trace("onPressUserTab: refused " + owner);
-      return;
+    let conditions = [`username${cs} <> ${q(owner)}`];
+    if (callerRole !== ROLE_ADMIN) {
+      conditions.push(`owned_by${cs} = ${q(owner)}`);
     }
-
-    let callerRole = Number(account.role) || 0;
-
-    if ((callerRole & ROLE_MANAGE_USERS) === 0) {
-      Screen.Items(CONTROL).LoadUsers(2, 0, "");
-      HMIRuntime.Trace("onPressUserTab: role " + callerRole + " may not list users");
-      return;
-    }
-
-    let scope = (callerRole === ROLE_ADMIN)
-      ? ""
-      : `WHERE owned_by${cs} = ${q(owner)}`;
+    let scope = "WHERE " + conditions.join(" AND ");
 
     let list = await conn.Execute(`
         SET NOCOUNT ON;
@@ -62,7 +38,6 @@ export async function UserManager_1_OnonPressUserTab(item, request) {
                owned_by
         FROM dbo.users
         ${scope}
-        ORDER BY username;
       `);
 
     let rows = [];
@@ -78,11 +53,11 @@ export async function UserManager_1_OnonPressUserTab(item, request) {
       });
     }
 
-    Screen.Items(CONTROL).LoadUsers(0, 0, JSON.stringify(rows));
+    item.LoadUsers(0, 0, JSON.stringify(rows));
     HMIRuntime.Trace("onPressUserTab: sent " + rows.length + " row(s) to " + owner);
   }
   catch (e) {
-    Screen.Items(CONTROL).LoadUsers(1, 0, "");
+    item.LoadUsers(1, 0, "");
 
     if (e.Results) {
       for (let statement in e.Results) {

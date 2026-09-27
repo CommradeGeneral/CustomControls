@@ -9,7 +9,7 @@ function inlineClassicScripts() {
     readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8')
 
   /*
-   * code.js defines window.NavBridge, which React reads at mount and which
+   * code.js defines window.MainBridge, which React reads at mount and which
    * the console testing aids drive. It is injected in dev as well as in the
    * build: skipping it there left the bridge undefined, so the control came up
    * with no way to reach its own entry points.

@@ -5,8 +5,17 @@ export async function UserManager_1_OnonAddUser(item, request) {
   var COST = 10;
   var MIN_LENGTH = 8;
   var ALLOWED_ROLES = [1, 3, 65535];
+  var ROLE_ADMIN = 65535;
 
   var connectionstring = "Driver={ODBC Driver 17 for SQL Server};Server=localhost;Database=concrete;Trusted_Connection=yes;";
+
+  let report = function (code, ms) {
+    try {
+      Screen.Items(CONTROL).AddUserMessage(code, ms);
+    } catch (e) {
+      HMIRuntime.Trace("onAddUser: cannot reach " + CONTROL + " - " + (e.message || e));
+    }
+  };
 
   let conn = null;
 
@@ -17,20 +26,27 @@ export async function UserManager_1_OnonAddUser(item, request) {
     let password = String(payload.password || "");
     let role = Number(payload.role);
     let owner = String(payload.owner || "").trim();
+    let callerRole = Number(payload.callerRole) || 0;
 
     if (!/^[A-Za-z0-9._-]{3,50}$/.test(username)) {
-      Screen.Items(CONTROL).AddUserMessage(1, 4000);
+      report(1, 4000);
       return;
     }
 
     if (password.length < MIN_LENGTH) {
-      Screen.Items(CONTROL).AddUserMessage(2, 4000);
+      report(2, 4000);
       return;
     }
 
     if (ALLOWED_ROLES.indexOf(role) < 0) {
-      Screen.Items(CONTROL).AddUserMessage(4, 4000);
+      report(4, 4000);
       HMIRuntime.Trace("onAddUser: refused role " + payload.role);
+      return;
+    }
+
+    if (callerRole !== ROLE_ADMIN && role === ROLE_ADMIN) {
+      report(4, 4000);
+      HMIRuntime.Trace("onAddUser: " + owner + " may not grant administrator");
       return;
     }
 
@@ -52,7 +68,7 @@ export async function UserManager_1_OnonAddUser(item, request) {
     for (let k in takenRows) { takenCount = Number(takenRows[k].n); break; }
 
     if (takenCount > 0) {
-      Screen.Items(CONTROL).AddUserMessage(1, 4000);
+      report(1, 4000);
       HMIRuntime.Trace("onAddUser: username taken " + username);
       return;
     }
@@ -68,7 +84,7 @@ export async function UserManager_1_OnonAddUser(item, request) {
         VALUES (${q(username)}, ${displayValue}, '${hash}', 1, ${role}, ${ownerValue});
       `);
 
-    Screen.Items(CONTROL).AddUserMessage(0, 3000);
+    report(0, 3000);
     HMIRuntime.Trace("onAddUser: created " + username + " (role " + role + ")");
   }
   catch (e) {
@@ -93,7 +109,7 @@ export async function UserManager_1_OnonAddUser(item, request) {
       HMIRuntime.Trace("onAddUser failed : " + (e.message || e));
     }
 
-    Screen.Items(CONTROL).AddUserMessage(duplicate ? 1 : 3, 4000);
+    report(duplicate ? 1 : 3, 4000);
   }
   finally {
     if (conn) {

@@ -218,9 +218,28 @@
 
 /* Pinned to the end of the row and never shrinking, so the two controls stay
    the same size however the fields divide the space. */
+/* Inside an edit row the buttons take the row's shared height, so they line up
+   with the inputs and the pill rather than each resolving 2em against its own
+   smaller font. */
+.owned-users__edit .owned-users__row-button {
+  width: var(--control-height);
+  height: var(--control-height);
+}
+
+.owned-users__edit .owned-users__row-button--wide {
+  width: auto;
+}
+
+/*
+ * Pinned to the end of the row and never shrinking, so the controls stay the
+ * same size however the fields divide the space. Bottom-aligned, so they sit
+ * on the input line rather than being centred against the taller fields.
+ */
 .owned-users__row-actions {
   display: flex;
   flex-shrink: 0;
+  align-items: flex-end;
+  align-self: flex-end;
   gap: 0.3em;
 }
 
@@ -415,10 +434,17 @@
   list-style: none;
 }
 
+/*
+ * Centred rather than baseline-aligned: the row mixes text with a pill and an
+ * icon button, and a shared baseline sets those by their text while leaving
+ * their boxes at different heights. Centring lines up the boxes, which is what
+ * the eye reads as a row.
+ */
 .owned-users__item {
   display: flex;
+  min-height: 2.4em;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.3em 0.8em;
   border: 1px solid #e1e4e9;
@@ -431,11 +457,18 @@
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5em;
 }
 
+/*
+ * The same minimum column the edit row's username takes, so opening a row does
+ * not shift the name sideways - the two layouts differ in what follows it, but
+ * this first column should not move.
+ */
 .owned-users__item-name {
+  flex-shrink: 0;
+  min-width: 4em;
   color: #27303d;
   font-size: 0.85em;
   font-weight: 700;
@@ -449,7 +482,7 @@
 .owned-users__item-meta {
   display: flex;
   flex-shrink: 0;
-  align-items: baseline;
+  align-items: center;
   gap: 0.7em;
 }
 
@@ -484,5 +517,233 @@
 @media (prefers-reduced-motion: reduce) {
   .owned-users__spinner {
     animation-duration: 2s;
+  }
+}
+
+/*
+ * A row open for editing. Carries the same tinted surface and accent edge as
+ * the new-user draft row, so "being changed" looks the same whether the row
+ * is new or already exists.
+ */
+.owned-users__item--editing {
+  border-color: #c8d8ef;
+  border-inline-start: 3px solid #2466c1;
+  background: #f7faff;
+}
+
+/*
+ * One height for every control in the row.
+ *
+ * Declared here, in the row's own font size, because each control sets its own
+ * smaller size and an `em` height would then resolve against that instead -
+ * which is exactly what left the status pill nine pixels shorter than the
+ * inputs beside it. A single value in a shared unit keeps them level.
+ *
+ * 1.77em of the inherited 22px is 38.9px, which is the input's own height:
+ * its line-height plus its padding and its two borders.
+ */
+.owned-users__edit {
+  --control-height: 1.77em;
+
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.35em;
+}
+
+/*
+ * Every control in the row sits on the same line as the inputs.
+ *
+ * The labelled fields are two stacked boxes - a small caps label over an
+ * input - so they are taller than the username, the status pill and the
+ * buttons beside them. flex-end lines the whole row up on its bottom edge,
+ * which is the input line, and the unlabelled items below reserve the label's
+ * height so their own contents land there too rather than floating.
+ */
+.owned-users__edit-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.4em 0.7em;
+}
+
+/*
+ * The label's height, reserved above the items that have no label.
+ *
+ * The label is 0.68em at the root's 1.45 line-height, and the field stacks it
+ * over its input with a 0.2em gap - the same three values
+ * .owned-users__row-label and .owned-users__edit-field already use, so the
+ * spacer tracks them rather than being a guessed constant.
+ */
+.owned-users__edit-fields > .owned-users__edit-name,
+.owned-users__edit-fields > .owned-users__item-status--editable,
+.owned-users__edit-fields > .owned-users__row-actions {
+  margin-top: calc(0.68em * 1.45 + 0.2em);
+}
+
+/*
+ * The username, shown but not editable. Styled as text rather than as a
+ * disabled input: a greyed-out box invites an attempt to type in it, where a
+ * label plainly does not.
+ */
+/*
+ * The username, shown but not editable.
+ *
+ * Given the input's own height and vertical padding rather than being
+ * centred, so its text sits on the same line as the text inside the fields
+ * beside it - centring aligned it to the row instead, which is why it floated
+ * above the inputs.
+ */
+.owned-users__edit-name {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  align-self: flex-end;
+  min-width: 4em;
+  height: var(--control-height);
+  color: #27303d;
+  font-size: 0.85em;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.owned-users__edit-field {
+  display: flex;
+  flex: 1 1 8em;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.2em;
+}
+
+.owned-users__edit-field--role {
+  flex: 0 1 8em;
+}
+
+/*
+ * The pencil. Quiet until the row is hovered or it takes focus: a column of
+ * buttons competing with the account names would make the list harder to
+ * scan, and the action is secondary to reading it.
+ */
+.owned-users__item-edit {
+  display: grid;
+  width: 1.8em;
+  height: 1.8em;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 0;
+  color: #9aa3b0;
+  background: none;
+  font-size: 0.8em;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+}
+
+.owned-users__item:hover .owned-users__item-edit,
+.owned-users__item-edit:focus-visible {
+  border-color: #d5dae1;
+  color: #2466c1;
+  background: #fff;
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .owned-users__item-edit {
+    transition: none;
+  }
+}
+
+/*
+ * The status pill, made operable.
+ *
+ * Keeps the colour and shape of the read-only one so the state stays
+ * recognisable, and gains the affordances of a control: a pointer, a dashed
+ * outline saying it can be changed, and hover and focus states. Follows the
+ * same treatment RecipePage gives its own editable flag, so the two controls
+ * behave alike.
+ */
+.owned-users__item-status--editable {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  /* Bottom-aligned with the inputs rather than centred on the row, so the
+     pill sits on the same line as the values it belongs beside. */
+  align-self: flex-end;
+  height: var(--control-height, 2em);
+  box-sizing: border-box;
+  border: 1px dashed #21834a80;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.owned-users__item-status--editable.owned-users__item-status--inactive {
+  border-color: #c73b3b80;
+}
+
+.owned-users__item-status--editable:hover {
+  border-style: solid;
+}
+
+/*
+ * Visually hidden rather than display: none - the checkbox still has to be
+ * focusable and readable by assistive tech, which a removed element is not.
+ * Its focus ring is drawn on the pill around it instead.
+ */
+.owned-users__status-input {
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  border: 0;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.owned-users__item-status--editable:has(.owned-users__status-input:focus-visible) {
+  border-style: solid;
+  box-shadow: 0 0 0 2px #2466c11f;
+}
+
+/* Mid-save the flag cannot be changed, so it stops offering to be. */
+.owned-users__item-status--editable:has(.owned-users__status-input:disabled) {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/*
+ * Red as an outline rather than a filled button: the destructive action should
+ * read as serious without competing with the row, and the confirm step is what
+ * actually guards it.
+ */
+.owned-users__row-button--danger {
+  border-color: #f0c9c9;
+  color: #b4443a;
+}
+
+.owned-users__row-button--danger:hover:not(:disabled),
+.owned-users__row-button--danger:focus-visible:not(:disabled) {
+  border-color: #c73b3b;
+  color: #fff;
+  background: #c73b3b;
+}
+
+/* The confirm carries words rather than an icon, so the one press that cannot
+   be undone says what it will do. */
+.owned-users__row-button--wide {
+  width: auto;
+  padding: 0 0.6em;
+  font-family: inherit;
+  font-size: 0.72em;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .owned-users__item-status--editable {
+    transition: none;
   }
 }

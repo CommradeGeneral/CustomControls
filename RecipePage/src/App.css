@@ -4,11 +4,26 @@
  *
  * Held here rather than as inline styles on the elements, so the layout can be
  * read in one place and App stays a description of which panes exist.
+ *
+ * Fills the control exactly.
+ *
+ * height: 100% is what makes the two columns the same height: without it the
+ * container is only as tall as its tallest child, so the list grew to its
+ * cards while the pane beside it stopped at its content - and `height: 100%`
+ * on the list's own child then resolved against that content height rather
+ * than the screen's.
+ *
+ * width: 100% rather than 100vw: the viewport unit ignores the container the
+ * HMI screen actually gives the control, and includes any scrollbar width,
+ * which is what pushes a 100vw row slightly wider than the space it has.
  */
 .main-container {
   display: flex;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
   gap: 10px;
-  width: 100vw;
 }
 
 /*
@@ -16,34 +31,46 @@
  * that grew with the window would leave them stretched across it.
  */
 .main-container__list {
+  display: flex;
   flex-shrink: 0;
+  /* A column, like the pane beside it: the child then fills the height rather
+     than only the width, which is what `flex: 1 1 auto` on it needs. */
+  flex-direction: column;
+  /* min-height: 0 lets the card list scroll inside this column rather than
+     stretching it: a flex child defaults to min-height: auto, which refuses to
+     shrink below its content. */
+  min-height: 0;
   width: 400px;
   padding: 10px;
 }
 
 .main-container__pane {
+  display: flex;
   flex-grow: 1;
+  min-height: 0;
+  flex-direction: column;
   padding: 10px;
 }
 
 /*
  * Both columns carry the same surface, so the list and whatever the pane is
  * showing read as two halves of one control rather than two panels.
+ *
+ * The surface is the column's *child* on both sides, never the column itself.
+ * That is what makes the two the same height: the column supplies the 10px
+ * gutter and the child fills whatever is left, so both white boxes start and
+ * end at the same place. Styling the pane itself as the surface - as this did
+ * - left it 20px taller than the list beside it, 10px at each end, because the
+ * list's own surface sat inside that gutter while the pane's replaced it.
  */
 .main-container__list > *,
-.main-container__pane {
+.main-container__pane > * {
   box-sizing: border-box;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   border-radius: 10px;
+  padding: 10px;
   background-color: #ffffff;
   box-shadow: #00000057 0 0 6px 1px;
-}
-
-.main-container__list > * {
-  width: 100%;
-  height: 100%;
-  padding: 10px;
-}
-
-.main-container__pane {
-  padding: 10px;
 }
