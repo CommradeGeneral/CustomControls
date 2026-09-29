@@ -27,12 +27,58 @@
             "description": "Write a diagnostic message to the control's console and status line. Exists to prove the container -> control direction of the contract is wired, which is the half a fired event cannot demonstrate."
           }
         },
-        "events": {},
+        "events": {
+          "onMotorDoubleClick": {
+            "arguments": {
+              "unit": {
+                "type": "string"
+              }
+            },
+            "description": "The motor was double-clicked. unit is the title of the silo it drives, so one handler can tell the units apart."
+          }
+        },
         "properties": {
           "Language": {
             "type": "string",
             "default": "en",
             "description": "Interface language: 'en' for English or 'ar' for Arabic, which also switches the layout to right-to-left. Any other value is treated as English. Read-only from the control's side: it has no language picker, so the value only ever arrives from the container."
+          },
+          "Scales": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "default": "",
+                  "description": "The scale's name, shown as the title above its silo."
+                },
+                "required": {
+                  "type": "number",
+                  "default": 0,
+                  "description": "The weight the batch calls for, in unit."
+                },
+                "served": {
+                  "type": "number",
+                  "default": 0,
+                  "description": "The weight delivered so far, in unit."
+                },
+                "unit": {
+                  "type": "string",
+                  "default": "kg",
+                  "description": "The unit both weights are in, shown after each."
+                }
+              }
+            },
+            "default": [
+              {
+                "name": "Cement",
+                "required": 1234.56,
+                "served": 987.65,
+                "unit": "kg"
+              }
+            ],
+            "description": "One entry per weighing scale, each drawn as a silo showing its name and its required and served weights. Order is the order they are laid out in."
           }
         }
       }

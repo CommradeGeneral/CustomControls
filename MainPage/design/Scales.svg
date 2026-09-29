@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="29.857155mm"
+   height="23.165152mm"
+   viewBox="0 0 29.857155 23.165152"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   sodipodi:docname="Scales.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#999999"
+     borderopacity="1"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="3.9458701"
+     inkscape:cx="46.124174"
+     inkscape:cy="86.039325"
+     inkscape:window-width="1920"
+     inkscape:window-height="1001"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1">
+    <sodipodi:guide
+       position="9.8836919,276.86814"
+       orientation="0,61.583369"
+       id="guide2"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="9.8836899,276.86814"
+       orientation="24.075802,0"
+       id="guide3"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="19.973464,276.86814"
+       orientation="55.754491,0"
+       id="guide4"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-61.59505,-36.729276)">
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-linecap:round"
+       id="rect2"
+       width="29.132891"
+       height="10.460304"
+       x="61.957184"
+       y="36.879276" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-linecap:round"
+       d="m 91.090072,47.33958 -9.521558,9.52156 H 71.478742 l -9.52156,-9.52156 z"
+       id="path2" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.300001;stroke-linecap:round"
+       id="rect3"
+       width="9.9397736"
+       height="2.8832867"
+       x="71.628738"
+       y="56.861141" />
+  </g>
+</svg>

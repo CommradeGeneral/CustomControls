@@ -15,8 +15,10 @@ import './Silo.css'
  * nothing outside the drawing needs.
  *
  *   dim   lines, lineCount (seam rings), labelGap (between icons), siloWidth, h1 (body), h2 (fence), h3 / h4 (hopper cone and
- *         outlet), w2 (outlet width); x, y and anchor place it - see
- *         siloOrigin
+ *         outlet), w2 (outlet width); tilt - how far down on it it is seen,
+ *         each horizontal circle's depth as a share of its width (TILT if
+ *         not given; 0 is dead level, flat 2D); x, y and anchor place it -
+ *         see siloOrigin
  *   look  body, hopper - each part's base colour; roof - the fence's, as it
  *         stands where the roof was. Any CSS colour, shaded as plastic
  *         (PLASTIC); outline - the stroke,
@@ -92,7 +94,7 @@ function badgeWidth(text) {
 // How far the outlet's rounded bottom - the front half of its circle, seen
 // from above - dips below the outlet's straight sides.
 function outletDip(dim) {
-  return (dim.w2 / 2) * TILT
+  return (dim.w2 / 2) * tiltOf(dim)
 }
 
 // The silo's own height, fence to the lowest point of the outlet - the icon
@@ -128,6 +130,13 @@ function siloOrigin(dim) {
   }
 }
 
+// The centre of the hopper's exit, where dim places it - the point the
+// 'outlet' anchor names, whatever anchor dim actually uses.
+export function siloOutlet(dim) {
+  const { left, top } = siloOrigin(dim)
+  return { x: left + dim.siloWidth / 2, y: top + dim.h2 + dim.h1 + dim.h3 + dim.h4 }
+}
+
 // Any CSS colour - 'red', '#f00', 'rgb(...)', 'hsl(...)' - as #rrggbb, so
 // shade() can take whatever `look` holds. A canvas context does the parsing:
 // assigning fillStyle normalises a valid colour to #rrggbb and leaves an
@@ -150,7 +159,7 @@ function toHex(colour) {
 // Lightens (amount > 0) or darkens (amount < 0) a colour by mixing it toward
 // white or black, so each part's one base colour is enough to derive the
 // whole gradient it is shaded with.
-function shade(colour, amount) {
+export function shade(colour, amount) {
   const n = parseInt(toHex(colour).slice(1), 16)
   const target = amount < 0 ? 0 : 255
   const t = Math.abs(amount)
@@ -168,7 +177,7 @@ function shade(colour, amount) {
 // [offset, amount] across the width (0 = left edge, 1 = right): the part's
 // colour lightened (amount > 0) or darkened (amount < 0) by that much, blended
 // smoothly between entries. Every part uses it, so they read as one vessel.
-const PLASTIC = [
+export const PLASTIC = [
   [0, -0.3],
   [0.1, -0.08],
   [0.24, 0.1],
@@ -181,7 +190,7 @@ const PLASTIC = [
 
 // PLASTIC's amount at t across the width, interpolated between its entries -
 // for shapes that cannot take a gradient and are shaded slice by slice.
-function plasticAt(t) {
+export function plasticAt(t) {
   const i = PLASTIC.findIndex(([offset]) => offset >= t)
   if (i <= 0) return PLASTIC[0][1]
   const [o0, a0] = PLASTIC[i - 1]
@@ -201,8 +210,14 @@ const CONE_SLICES = 48
 // The silo is seen from a little above, so every horizontal circle on it -
 // its top, the division seams, the fence's rails - is drawn as an ellipse
 // this much flatter than it is wide. 0 would be dead level; larger looks
-// further down on it.
-const TILT = 0.25
+// further down on it. The default; dim.tilt sets it per silo.
+export const TILT = 0.25
+
+// A silo's tilt: dim.tilt if it is a number of 0 or more, TILT otherwise.
+function tiltOf(dim) {
+  const t = Number(dim.tilt)
+  return dim.tilt !== undefined && dim.tilt !== null && dim.tilt !== '' && Number.isFinite(t) && t >= 0 ? t : TILT
+}
 
 // The safety fence round the top, in place of a roof: a ring of posts round
 // the rim carrying a top rail and a mid rail, all within h2. Posts come
@@ -267,6 +282,22 @@ const FENCE_FAR = -0.3
 // narrow silo's fence does not vanish.
 const FENCE_BAR = 0.03
 const FENCE_BAR_MIN = 1
+// The fence's bars are round, so each is shaded across its thickness: a post
+// lit from the left, a rail from above - a highlight on the lit side, a
+// shadow on the other. Translucent white and black over the bar's own
+// colour, so it works for any look.roof. Each entry is [offset, colour,
+// opacity] across a post, left to right.
+const BAR_ROUND = [
+  [0, '#000', 0.3],
+  [0.3, '#fff', 0.45],
+  [0.55, '#fff', 0],
+  [1, '#000', 0.45],
+]
+// A rail's highlight and shadow: each a thin line along it, this far above
+// or below its middle and this wide, as shares of its thickness - kept
+// within the rail so neither shows past its edge.
+const RAIL_LIGHT = { offset: 0.22, width: 0.36, opacity: 0.4 }
+const RAIL_SHADOW = { offset: 0.24, width: 0.4, opacity: 0.35 }
 
 function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClick }) {
   // The icon row is drawn above the fence, so the group starts that much
@@ -297,19 +328,20 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
   const SEAM = 1
   const bar = Math.max(FENCE_BAR_MIN, W * FENCE_BAR)
   // The ellipse every horizontal circle is drawn as: rx across, ry deep.
+  const tilt = tiltOf(dim)
   const rx = W / 2
-  const ry = rx * TILT
+  const ry = rx * tilt
   // A circle's front half (bulging down, towards the viewer) and back half
   // (bulging up), as arcs through its leftmost and rightmost points - split
   // so that whatever stands between the two can be drawn in between.
-  const frontArc = (cy, r = rx) => `M ${W / 2 + r} ${cy} A ${r} ${r * TILT} 0 0 1 ${W / 2 - r} ${cy}`
-  const backArc = (cy, r = rx) => `M ${W / 2 - r} ${cy} A ${r} ${r * TILT} 0 0 1 ${W / 2 + r} ${cy}`
+  const frontArc = (cy, r = rx) => `M ${W / 2 + r} ${cy} A ${r} ${r * tilt} 0 0 1 ${W / 2 - r} ${cy}`
+  const backArc = (cy, r = rx) => `M ${W / 2 - r} ${cy} A ${r} ${r * tilt} 0 0 1 ${W / 2 + r} ${cy}`
 
   // The fence's rails: circles inset by half a bar so their strokes stay
   // within the silo's width, the top one as high as fits inside h2, the mid
   // one halfway between it and the rim at the top of the body.
   const railR = rx - bar / 2
-  const topRail = railR * TILT + bar / 2
+  const topRail = railR * tilt + bar / 2
   const rails = [topRail, (topRail + dim.h2) / 2]
   // The posts, spaced evenly round the rim. angle 0 is nearest the viewer;
   // cos(angle) > 0 is the near half, drawn in front of the body's top, and
@@ -319,7 +351,7 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
   const fence = Array.from({ length: posts }, (_, i) => {
     const angle = ((i + 0.5) / posts) * 2 * Math.PI
     const x = W / 2 + railR * Math.sin(angle)
-    const depth = railR * TILT * Math.cos(angle)
+    const depth = railR * tilt * Math.cos(angle)
     return {
       angle,
       near: Math.cos(angle) > 0,
@@ -330,6 +362,36 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
       colour: shade(look.roof, plasticAt(x / W) + (Math.cos(angle) > 0 ? 0 : FENCE_FAR)),
     }
   })
+  // A post: its colour, then BAR_ROUND over it so it reads as a round bar.
+  const drawPost = (p) => (
+    <g key={p.angle}>
+      <rect x={p.x} y={p.y} width={bar} height={p.height} fill={p.colour} />
+      <rect x={p.x} y={p.y} width={bar} height={p.height} fill={`url(#${fillId('bar')})`} />
+    </g>
+  )
+  // A rail along d, a tube: its colour, then a highlight along its top and
+  // a shadow along its underside, each shifted off its middle but kept
+  // within it. `dimmed` (FENCE_FAR or 0) weakens the highlight on the far
+  // side, in shadow.
+  const drawRail = (d, stroke, key, dimmed) => (
+    <g key={key} fill="none">
+      <path d={d} stroke={stroke} strokeWidth={bar} />
+      <path
+        d={d}
+        transform={`translate(0,${-bar * RAIL_LIGHT.offset})`}
+        stroke="#fff"
+        strokeOpacity={RAIL_LIGHT.opacity * (1 + dimmed)}
+        strokeWidth={bar * RAIL_LIGHT.width}
+      />
+      <path
+        d={d}
+        transform={`translate(0,${bar * RAIL_SHADOW.offset})`}
+        stroke="#000"
+        strokeOpacity={RAIL_SHADOW.opacity}
+        strokeWidth={bar * RAIL_SHADOW.width}
+      />
+    </g>
+  )
   const coneTop = dim.h2 + dim.h1
   const coneBottom = coneTop + dim.h3
 
@@ -339,11 +401,11 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
   // above, the cone's outline is the pair of lines that just touch both
   // ellipses, meeting the big one a little in front of its ends - drawing
   // from the ends instead leaves the body's rounded bottom sticking out past
-  // the cone. Squashed back into circles (y / TILT) the touching lines are
+  // the cone. Squashed back into circles (y / tilt) the touching lines are
   // the circles' outer tangents, at angle phi off the vertical.
   const r2 = dim.w2 / 2
-  const ry2 = r2 * TILT
-  const phi = Math.asin(Math.min(1, ((rx - r2) * TILT) / dim.h3))
+  const ry2 = r2 * tilt
+  const phi = dim.h3 > 0 ? Math.asin(Math.max(-1, Math.min(1, ((rx - r2) * tilt) / dim.h3))) : 0
   // Positions round the cone as an angle from its front (0), -90deg at the
   // far left to +90deg at the far right. What is in view runs between the
   // two tangent lines, at +/-(90deg - phi).
@@ -405,8 +467,8 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
     const r = rx + (r2 - rx) * f
     const cy = coneTop + dim.h3 * f
     const x = r * Math.sin(reach)
-    const y = cy + r * TILT * Math.cos(reach)
-    return { onCone: true, d: `M ${W / 2 - x} ${y} A ${r} ${r * TILT} 0 0 0 ${W / 2 + x} ${y}` }
+    const y = cy + r * tilt * Math.cos(reach)
+    return { onCone: true, d: `M ${W / 2 - x} ${y} A ${r} ${r * tilt} 0 0 0 ${W / 2 + x} ${y}` }
   }
   const rings = Array.from({ length: ringCount }, (_, i) => ringAt(i + 1))
   const ringW = W * RING
@@ -569,6 +631,12 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
             <stop offset="0" stopColor="#000" stopOpacity="0" />
             <stop offset="1" stopColor="#000" stopOpacity="0.2" />
           </linearGradient>
+          {/* Across a post, laid over its colour so it reads as round. */}
+          <linearGradient id={fillId('bar')} x1="0" y1="0" x2="1" y2="0">
+            {BAR_ROUND.map(([offset, colour, opacity]) => (
+              <stop key={offset} offset={offset} stopColor={colour} stopOpacity={opacity} />
+            ))}
+          </linearGradient>
         </defs>
         {/*
           Filled parts first, the division lines after, so no fill paints
@@ -598,23 +666,15 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
           and the near posts stand in front of it. Within each half, rails
           over posts, as a rail runs in front of the posts it is fixed to.
 
-          The fence is stroke="none" and flat-shaded per post: its bars are
-          too thin for an outline or a gradient across them to read.
+          The fence is stroke="none", its bars too thin for an outline to
+          read: each is shaded round instead - a post by its colour for
+          where it stands, with BAR_ROUND across it; a rail by a highlight
+          along its top and a shadow along its underside.
         */}
         <g stroke="none">
-          {fence.filter((p) => !p.near).map((p) => (
-            <rect key={p.angle} x={p.x} y={p.y} width={bar} height={p.height} fill={p.colour} />
-          ))}
+          {fence.filter((p) => !p.near).map(drawPost)}
         </g>
-        {rails.map((cy) => (
-          <path
-            key={cy}
-            d={backArc(cy, railR)}
-            fill="none"
-            stroke={shade(look.roof, FENCE_FAR)}
-            strokeWidth={bar}
-          />
-        ))}
+        {rails.map((cy) => drawRail(backArc(cy, railR), shade(look.roof, FENCE_FAR), cy, FENCE_FAR))}
         {/*
           The body: its sides, down to the front half of its bottom circle
           where it meets the cone, then its top - a full ellipse, lit a
@@ -633,19 +693,9 @@ function SiloShape({ dim, look, warnings, title, values, onIconClick, onSiloClic
           g={{ W, bodyTop: dim.h2, bodyBottom: coneTop, look, measure: textWidth }}
         />
         <g stroke="none">
-          {fence.filter((p) => p.near).map((p) => (
-            <rect key={p.angle} x={p.x} y={p.y} width={bar} height={p.height} fill={p.colour} />
-          ))}
+          {fence.filter((p) => p.near).map(drawPost)}
         </g>
-        {rails.map((cy) => (
-          <path
-            key={cy}
-            d={frontArc(cy, railR)}
-            fill="none"
-            stroke={`url(#${fillId('post')})`}
-            strokeWidth={bar}
-          />
-        ))}
+        {rails.map((cy) => drawRail(frontArc(cy, railR), `url(#${fillId('post')})`, cy, 0))}
         {/*
           One line per division, drawn between the rows rather than through
           the block's own edges: `line` divisions need `line - 1` separators,

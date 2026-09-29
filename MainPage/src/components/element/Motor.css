@@ -1,0 +1,63 @@
+/*
+ * The motor takes clicks only when it is given a click or double-click
+ * handler (Motor.jsx), and says so with the hand. user-select stops a
+ * double-click from highlighting anything around it.
+ */
+.motor.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+/*
+ * Overloaded: the body's red pulses brighter and back, and the danger sign
+ * over it flashes, both on one beat so they read as one alarm.
+ */
+.motor-overload-flash {
+  opacity: 0;
+  animation: motor-overload-pulse 1s ease-in-out infinite;
+}
+
+.motor-danger {
+  animation: motor-danger-flash 1s steps(1, end) infinite;
+}
+
+@keyframes motor-overload-pulse {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 0.55; }
+}
+
+@keyframes motor-danger-flash {
+  0% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+/*
+ * Running while overloaded: the same beat and easing as overloaded and
+ * stopped, but the layer over the body is the running green (Motor.jsx), faded all
+ * the way in, so the body changes between red and green and back.
+ */
+.motor.driven .motor-overload-flash {
+  animation-name: motor-overload-swap;
+}
+
+@keyframes motor-overload-swap {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+/* A steady red and a steady sign for anyone who has asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .motor-overload-flash,
+  .motor-danger,
+  .motor.driven .motor-overload-flash,
+  .motor.driven .motor-danger {
+    animation: none;
+  }
+  .motor-overload-flash {
+    opacity: 0.25;
+  }
+  /* Steady red when running too: the turning rotor says it runs. */
+  .motor.driven .motor-overload-flash {
+    opacity: 0;
+  }
+}

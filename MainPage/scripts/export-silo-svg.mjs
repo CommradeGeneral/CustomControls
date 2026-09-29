@@ -27,14 +27,14 @@ const dim = {
   h1: 120,
   h2: 25,
   h3: 30,
-  h4: 25,
+  h4: 30,
   w2: 20,
-  labelGap: 3,
+  labelGap: 10,
 }
 const look = {
-  body: '#abf5b1',
+  body: '#b6d600',
   roof: '#258c50',
-  hopper: '#abf5b1',
+  hopper: '#b6d600',
   outline: 'none',
 }
 

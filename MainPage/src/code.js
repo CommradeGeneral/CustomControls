@@ -3,7 +3,8 @@
 //
 // WebCC starts before React and forwards TIA property changes to the UI.
 //
-// Carries the Print method and the Language property. What is here besides
+// Carries the Print method, the Language property and the onMotorDoubleClick
+// event. What is here besides
 // them is the plumbing every contract needs whatever is added later: the
 // handshake and its settled/connected flags, the dispatch queue that survives
 // React mounting late, and the standalone path.
@@ -120,7 +121,7 @@ WebCC.start(
         setStatus('Print: ' + data);
       }
     },
-    events: [],
+    events: ['onMotorDoubleClick'],
     properties: {
       Language: 'en',
     }
@@ -144,8 +145,8 @@ WebCC.start(
  * trace makes a working control look broken. The return value still says
  * whether anything was actually sent.
  *
- * No events are declared yet, so every call returns false until one is added
- * to manifest.json and to the `events` list above.
+ * Declared events: onMotorDoubleClick (unit: string). A new one goes in
+ * manifest.json and in the `events` list above, or the container drops it.
  */
 window.MainBridge.fire = function (name, payload) {
   if (!window.WebCC || !WebCC.Events || !WebCC.Events.fire) {
